@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Electron build output
+dist/
+out/
+build/
+
+# Runtime data and logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Editor directories
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# SQLite database files (user data — stored in appData, not repo)
+*.db
+*.db-shm
+*.db-wal
+
+# Temp
+*.tmp
+*.temp

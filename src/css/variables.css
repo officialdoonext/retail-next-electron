@@ -1,0 +1,138 @@
+/**
+ * Retail Next — Design Tokens (CSS Custom Properties)
+ *
+ * All colours, spacing, typography, shadows, and animation values
+ * are defined here as CSS variables so every component references
+ * the same design system. Changing a token here updates the entire UI.
+ *
+ * Architecture note:
+ *   Import this file BEFORE style.css so all variables resolve correctly.
+ */
+
+:root {
+
+  /* ── Colour Palette ──────────────────────────────────────────────────────── */
+
+  /* Background layers — deep navy sidebar, lighter content surfaces */
+  --color-bg-icon-rail:     #030712;   /* Leftmost icon rail — near black */
+  --color-bg-sidebar:       #0f172a;   /* Main sidebar panel */
+  --color-bg-sidebar-hover: #1e293b;   /* Sidebar item hover */
+  --color-bg-sidebar-active:#1e3a5f;   /* Active sidebar item */
+  --color-bg-app:           #f0f4f8;   /* Main content area background */
+  --color-bg-card:          #ffffff;   /* Card surfaces */
+  --color-bg-header:        #ffffff;   /* Top header bar */
+  --color-bg-topbar:        #0f172a;   /* Inner top bar (inside content) */
+  --color-bg-input:         #f8fafc;   /* Input backgrounds */
+  --color-bg-tag:           #e2e8f0;   /* Chip / tag backgrounds */
+
+  /* Brand / Primary */
+  --color-brand:            #3b82f6;   /* Primary blue */
+  --color-brand-hover:      #2563eb;
+  --color-brand-light:      #dbeafe;
+  --color-brand-dark:       #1d4ed8;
+
+  /* Semantic states */
+  --color-success:          #10b981;   /* Green — connected, active */
+  --color-success-bg:       #d1fae5;
+  --color-success-border:   #6ee7b7;
+  --color-warning:          #f59e0b;   /* Amber — warning */
+  --color-warning-bg:       #fef3c7;
+  --color-warning-border:   #fcd34d;
+  --color-error:            #ef4444;   /* Red — error, disconnected */
+  --color-error-bg:         #fee2e2;
+  --color-error-border:     #fca5a5;
+  --color-offline:          #8b5cf6;   /* Purple — offline mode indicator */
+  --color-offline-bg:       #ede9fe;
+  --color-offline-border:   #c4b5fd;
+
+  /* Text colours */
+  --color-text-primary:     #0f172a;   /* Primary text on light backgrounds */
+  --color-text-secondary:   #475569;   /* Secondary / muted text */
+  --color-text-tertiary:    #94a3b8;   /* Placeholder / very muted */
+  --color-text-inverse:     #f8fafc;   /* Text on dark (sidebar) backgrounds */
+  --color-text-inverse-muted: #94a3b8; /* Muted text on dark backgrounds */
+  --color-text-link:        #3b82f6;
+
+  /* Borders & Dividers */
+  --color-border:           #e2e8f0;
+  --color-border-strong:    #cbd5e1;
+  --color-border-dark:      #1e293b;
+  --color-divider:          #f1f5f9;
+
+  /* ── Layout Dimensions ───────────────────────────────────────────────────── */
+
+  --layout-icon-rail-width:    56px;
+  --layout-sidebar-width:      240px;
+  --layout-header-height:      52px;
+  --layout-breadcrumb-height:  44px;
+  --layout-status-bar-height:  28px;
+
+  /* ── Typography ──────────────────────────────────────────────────────────── */
+
+  --font-family-base:    'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-family-mono:    'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+  --font-size-xs:        11px;
+  --font-size-sm:        12px;
+  --font-size-base:      13px;
+  --font-size-md:        14px;
+  --font-size-lg:        16px;
+  --font-size-xl:        18px;
+  --font-size-2xl:       22px;
+  --font-size-3xl:       28px;
+
+  --font-weight-regular: 400;
+  --font-weight-medium:  500;
+  --font-weight-semibold:600;
+  --font-weight-bold:    700;
+
+  --line-height-tight:   1.25;
+  --line-height-normal:  1.5;
+  --line-height-relaxed: 1.75;
+
+  /* ── Spacing ─────────────────────────────────────────────────────────────── */
+
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-5:   20px;
+  --space-6:   24px;
+  --space-8:   32px;
+  --space-10:  40px;
+  --space-12:  48px;
+  --space-16:  64px;
+
+  /* ── Border Radius ───────────────────────────────────────────────────────── */
+
+  --radius-sm:   4px;
+  --radius-md:   6px;
+  --radius-lg:   8px;
+  --radius-xl:   12px;
+  --radius-2xl:  16px;
+  --radius-full: 9999px;
+
+  /* ── Shadows ─────────────────────────────────────────────────────────────── */
+
+  --shadow-xs:  0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-sm:  0 1px 3px 0 rgba(0, 0, 0, 0.10), 0 1px 2px -1px rgba(0, 0, 0, 0.10);
+  --shadow-md:  0 4px 6px -1px rgba(0, 0, 0, 0.10), 0 2px 4px -2px rgba(0, 0, 0, 0.10);
+  --shadow-lg:  0 10px 15px -3px rgba(0, 0, 0, 0.10), 0 4px 6px -4px rgba(0, 0, 0, 0.10);
+  --shadow-xl:  0 20px 25px -5px rgba(0, 0, 0, 0.10), 0 8px 10px -6px rgba(0, 0, 0, 0.10);
+  --shadow-card:0 0 0 1px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.08);
+
+  /* ── Transitions ─────────────────────────────────────────────────────────── */
+
+  --transition-fast:   150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow:   300ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── Z-index layers ──────────────────────────────────────────────────────── */
+
+  --z-base:     0;
+  --z-above:    10;
+  --z-sidebar:  100;
+  --z-header:   200;
+  --z-modal:    1000;
+  --z-toast:    2000;
+}

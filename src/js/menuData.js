@@ -26,8 +26,8 @@ window.RETAIL_MENUS = [
         id: 'file-company',
         label: 'Company',
         children: [
-          { id: 'file-company-profile', label: 'Company Profile', route: 'settings-company' },
-          { id: 'file-company-edit', label: 'Edit Company Details', route: 'settings-company' }
+          { id: 'file-company-profile', label: 'Company Profile', route: 'company-profile' },
+          { id: 'file-company-edit', label: 'Edit Company Details', route: 'company-edit' }
         ]
       },
       {
@@ -80,7 +80,7 @@ window.RETAIL_MENUS = [
         id: 'file-print-setup',
         label: 'Print Setup',
         children: [
-          { id: 'file-printer-default', label: 'Default Printer', route: 'settings-printer' },
+          { id: 'file-printer-default', label: 'Default Printer', route: 'print-setup' },
           { id: 'file-page-setup', label: 'Page Setup', route: 'page-setup' }
         ]
       },

@@ -61,6 +61,138 @@
       return;
     }
 
+    // ─── FILE MENU ROUTES ───────────────────────────────────────────────────
+    // Company Profile & Details
+    if (
+      r === 'company-profile' || 
+      r === 'company-edit' || 
+      r === 'file-company-profile' || 
+      r === 'file-company-edit' || 
+      r === 'settings-company'
+    ) {
+      if (window.CompanyPage) {
+        window.CompanyPage.renderPage(outlet);
+        return;
+      }
+    }
+
+    // Financial Year
+    if (r === 'financial-year-select' || r === 'file-fy-select') {
+      if (window.FinancialYearPage) {
+        window.FinancialYearPage.renderPage(outlet, 'select');
+        return;
+      }
+    }
+    if (r === 'financial-year-create' || r === 'file-fy-create') {
+      if (window.FinancialYearPage) {
+        window.FinancialYearPage.renderPage(outlet, 'create');
+        return;
+      }
+    }
+    if (r === 'financial-year-close' || r === 'file-fy-close') {
+      if (window.FinancialYearPage) {
+        window.FinancialYearPage.renderPage(outlet, 'close');
+        return;
+      }
+    }
+
+    // Branch Management
+    if (
+      r === 'branch-select' || 
+      r === 'branch-switch' || 
+      r === 'branch-manage' || 
+      r === 'file-branch-select' || 
+      r === 'file-branch-switch'
+    ) {
+      if (window.BranchPage) {
+        window.BranchPage.renderPage(outlet);
+        return;
+      }
+    }
+
+    // Data Management
+    if (r === 'backup-database' || r === 'file-backup') {
+      if (window.DataManagementPage) {
+        window.DataManagementPage.renderPage(outlet, 'backup');
+        return;
+      }
+    }
+    if (r === 'restore-database' || r === 'file-restore') {
+      if (window.DataManagementPage) {
+        window.DataManagementPage.renderPage(outlet, 'restore');
+        return;
+      }
+    }
+    if (r === 'export-data' || r === 'file-export') {
+      if (window.DataManagementPage) {
+        window.DataManagementPage.renderPage(outlet, 'export');
+        return;
+      }
+    }
+
+    // Import Data
+    if (r === 'import-products' || r === 'file-import-products') {
+      if (window.ImportDataPage) {
+        window.ImportDataPage.renderPage(outlet, 'products');
+        return;
+      }
+    }
+    if (r === 'import-customers' || r === 'file-import-customers') {
+      if (window.ImportDataPage) {
+        window.ImportDataPage.renderPage(outlet, 'customers');
+        return;
+      }
+    }
+    if (r === 'import-suppliers' || r === 'file-import-suppliers') {
+      if (window.ImportDataPage) {
+        window.ImportDataPage.renderPage(outlet, 'suppliers');
+        return;
+      }
+    }
+    if (r === 'import-opening-stock' || r === 'file-import-stock') {
+      if (window.ImportDataPage) {
+        window.ImportDataPage.renderPage(outlet, 'stock');
+        return;
+      }
+    }
+
+    // Session Management (Lock App & Switch User)
+    if (r === 'lock-app' || r === 'file-lock-app') {
+      if (window.SessionPage) {
+        window.SessionPage.renderPage(outlet, 'lock');
+        return;
+      }
+    }
+    if (r === 'switch-user' || r === 'file-switch-user') {
+      if (window.SessionPage) {
+        window.SessionPage.renderPage(outlet, 'switch');
+        return;
+      }
+    }
+
+    // Print Setup & Page Setup
+    if (
+      r === 'print-setup' || 
+      r === 'settings-printer' || 
+      r === 'page-setup' || 
+      r === 'file-printer-default' || 
+      r === 'file-page-setup'
+    ) {
+      if (window.PrintSetupPage) {
+        window.PrintSetupPage.renderPage(outlet);
+        return;
+      }
+    }
+
+    // Exit Application
+    if (r === 'exit-app' || r === 'file-exit') {
+      if (confirm('Are you sure you want to close RetailNext?')) {
+        window.close();
+      }
+      return;
+    }
+
+    // ─── OTHER APPLICATION ROUTES ───────────────────────────────────────────
     // 2. Dashboard
     if (r === 'dashboard' || r === 'home') {
       window.DashboardPage.renderPage(outlet, appStatus);
@@ -229,14 +361,11 @@
       });
     }
 
-    // 5. Branch Switcher Pill
+    // 5. Branch Switcher Pill in Header
     if (branchIndicator) {
+      branchIndicator.style.cursor = 'pointer';
       branchIndicator.addEventListener('click', () => {
-        const newBranch = prompt('Switch active branch (e.g. Main Store, Warehouse-1, North Outlet):', 'Main Store');
-        if (newBranch && newBranch.trim()) {
-          const textEl = document.getElementById('branch-name-text');
-          if (textEl) textEl.textContent = 'Branch: ' + newBranch.trim();
-        }
+        navigateTo('branch-select', 'Branch & Outlet Management');
       });
     }
 

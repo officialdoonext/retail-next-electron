@@ -7,7 +7,7 @@
 
 window.CustomersPage = (() => {
 
-  function renderPage(outlet) {
+  function renderPage(outlet, subTab = 'list') {
     if (!outlet) return;
     outlet.innerHTML = '';
     outlet.className = 'page-container customers-page';
@@ -128,6 +128,10 @@ window.CustomersPage = (() => {
     }
     if (cancelBtn && modal) {
       cancelBtn.addEventListener('click', () => modal.classList.remove('open'));
+    }
+
+    if (subTab === 'add' && modal) {
+      modal.classList.add('open');
     }
 
     if (form) {

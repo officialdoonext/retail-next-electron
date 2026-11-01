@@ -199,27 +199,303 @@
       return;
     }
 
-    // 3. Product Master (Add mode)
+    // ─── MASTERS MENU ROUTES ───────────────────────────────────────────────
+    // 1. Product Master (Add mode)
     if (r === 'product-add' || r === 'mas-product-add') {
-      window.ProductMasterPage.renderPage(outlet, { mode: 'add' });
-      return;
+      if (window.ProductMasterPage) {
+        window.ProductMasterPage.renderPage(outlet, { mode: 'add' });
+        return;
+      }
     }
 
-    // 4. Product Master (List / Catalog mode)
+    // Product Master (List / Catalog mode)
     if (
       r === 'product-list' || 
       r === 'mas-product-list' || 
+      r === 'mas-product-edit' || 
+      r === 'mas-product-delete' || 
       r === 'mas-product-master' ||
       r === 'product-master'
     ) {
-      window.ProductMasterPage.renderPage(outlet, { mode: 'list' });
-      return;
+      if (window.ProductMasterPage) {
+        window.ProductMasterPage.renderPage(outlet, { mode: 'list' });
+        return;
+      }
     }
 
-    // 5. Customer Master
-    if (r === 'customers' || r === 'mas-cust-list' || r === 'mas-customer' || r === 'customer-add') {
-      window.CustomersPage.renderPage(outlet);
-      return;
+    // 2. Product Categories
+    if (r === 'category-main' || r === 'mas-cat-main') {
+      if (window.CategoriesPage) {
+        window.CategoriesPage.renderPage(outlet, 'main');
+        return;
+      }
+    }
+    if (r === 'category-sub' || r === 'mas-cat-sub') {
+      if (window.CategoriesPage) {
+        window.CategoriesPage.renderPage(outlet, 'sub');
+        return;
+      }
+    }
+    if (
+      r === 'category-list' || 
+      r === 'mas-cat-list' || 
+      r === 'mas-categories' || 
+      r === 'categories'
+    ) {
+      if (window.CategoriesPage) {
+        window.CategoriesPage.renderPage(outlet, 'list');
+        return;
+      }
+    }
+
+    // 3. Brands
+    if (r === 'brand-add' || r === 'mas-brand-add') {
+      if (window.BrandsPage) {
+        window.BrandsPage.renderPage(outlet, 'add');
+        return;
+      }
+    }
+    if (
+      r === 'brand-edit' || 
+      r === 'brand-list' || 
+      r === 'mas-brand-edit' || 
+      r === 'mas-brand-list' || 
+      r === 'mas-brands' || 
+      r === 'brands'
+    ) {
+      if (window.BrandsPage) {
+        window.BrandsPage.renderPage(outlet, 'list');
+        return;
+      }
+    }
+
+    // 4. Units of Measurement & Conversions
+    if (
+      r === 'uom-pieces' || 
+      r === 'uom-box' || 
+      r === 'uom-packet' || 
+      r === 'uom-gram' || 
+      r === 'uom-kg' || 
+      r === 'uom-litre' || 
+      r === 'uom-metre' || 
+      r === 'mas-uom' || 
+      r === 'uom'
+    ) {
+      if (window.UomPage) {
+        window.UomPage.renderPage(outlet, 'uom');
+        return;
+      }
+    }
+    if (
+      r === 'unit-conv-box' || 
+      r === 'unit-conv-kg' || 
+      r === 'unit-conv-pack' || 
+      r === 'mas-conversions' || 
+      r === 'unit-conversions'
+    ) {
+      if (window.UomPage) {
+        window.UomPage.renderPage(outlet, 'conv');
+        return;
+      }
+    }
+
+    // 5. Product Variants
+    if (
+      r === 'variant-size' || 
+      r === 'variant-colour' || 
+      r === 'variant-weight' || 
+      r === 'variant-model' || 
+      r === 'variant-list' || 
+      r.startsWith('variant-') || 
+      r.startsWith('mas-var-') || 
+      r === 'mas-variants' || 
+      r === 'variants'
+    ) {
+      if (window.VariantsPage) {
+        window.VariantsPage.renderPage(outlet, r);
+        return;
+      }
+    }
+
+    // 6. Barcodes
+    if (
+      r === 'barcode-generate' || 
+      r === 'barcode-assign' || 
+      r === 'barcode-multiple' || 
+      r.startsWith('barcode-') || 
+      r.startsWith('mas-bc-') || 
+      r === 'mas-barcodes' || 
+      r === 'barcodes'
+    ) {
+      if (window.BarcodesPage) {
+        window.BarcodesPage.renderPage(outlet);
+        return;
+      }
+    }
+
+    // 7. Product Pricing & Price Lists
+    if (
+      r === 'pricing-selling' || 
+      r === 'pricing-mrp' || 
+      r === 'pricing-wholesale' || 
+      r === 'pricing-retail' || 
+      r === 'mas-price-selling' || 
+      r === 'mas-price-mrp' || 
+      r === 'mas-price-wholesale' || 
+      r === 'mas-price-retail' || 
+      r === 'mas-pricing' || 
+      r === 'pricing'
+    ) {
+      if (window.PricingPage) {
+        window.PricingPage.renderPage(outlet, 'catalog');
+        return;
+      }
+    }
+    if (r === 'pricelist-bulk' || r === 'mas-pl-bulk') {
+      if (window.PricingPage) {
+        window.PricingPage.renderPage(outlet, 'bulk');
+        return;
+      }
+    }
+    if (r === 'pricelist-customer' || r === 'mas-pl-customer' || r === 'mas-pricelists' || r === 'pricelists') {
+      if (window.PricingPage) {
+        window.PricingPage.renderPage(outlet, 'tiers');
+        return;
+      }
+    }
+
+    // 8. Tax Master (GST & HSN/SAC)
+    if (r === 'tax-gst' || r === 'mas-tax-gst' || r === 'tax-categories' || r === 'mas-tax-categories' || r === 'mas-tax' || r === 'taxes') {
+      if (window.TaxMasterPage) {
+        window.TaxMasterPage.renderPage(outlet, 'gst');
+        return;
+      }
+    }
+    if (r === 'tax-hsn' || r === 'mas-tax-hsn') {
+      if (window.TaxMasterPage) {
+        window.TaxMasterPage.renderPage(outlet, 'tax-hsn');
+        return;
+      }
+    }
+
+    // 9. Customer Master & Groups
+    if (r === 'customer-add' || r === 'mas-cust-add') {
+      if (window.CustomersPage) {
+        window.CustomersPage.renderPage(outlet, 'add');
+        return;
+      }
+    }
+    if (
+      r === 'customers' || 
+      r === 'mas-cust-list' || 
+      r === 'mas-customer' || 
+      r === 'customer-list' || 
+      r === 'customer-groups' || 
+      r === 'mas-cust-groups'
+    ) {
+      if (window.CustomersPage) {
+        window.CustomersPage.renderPage(outlet, 'list');
+        return;
+      }
+    }
+
+    // 10. Supplier Master & Groups
+    if (r === 'supplier-add' || r === 'mas-supp-add') {
+      if (window.SuppliersPage) {
+        window.SuppliersPage.renderPage(outlet, 'add');
+        return;
+      }
+    }
+    if (
+      r === 'supplier-list' || 
+      r === 'mas-supp-list' || 
+      r === 'mas-supplier' || 
+      r === 'suppliers' || 
+      r === 'supplier-groups' || 
+      r === 'mas-supp-groups'
+    ) {
+      if (window.SuppliersPage) {
+        window.SuppliersPage.renderPage(outlet, 'list');
+        return;
+      }
+    }
+
+    // 11. Payment Modes
+    if (
+      r === 'paymode-cash' || 
+      r === 'paymode-upi' || 
+      r === 'paymode-card' || 
+      r === 'paymode-bank' || 
+      r === 'paymode-credit' || 
+      r.startsWith('paymode-') || 
+      r.startsWith('mas-pay-') || 
+      r === 'mas-payment-modes' || 
+      r === 'payment-modes'
+    ) {
+      if (window.PaymentModesPage) {
+        window.PaymentModesPage.renderPage(outlet);
+        return;
+      }
+    }
+
+    // 12. Discount Master
+    if (r === 'discount-rules' || r === 'mas-disc-rules' || r === 'mas-discounts' || r === 'discounts') {
+      if (window.DiscountsPage) {
+        window.DiscountsPage.renderPage(outlet, 'rules');
+        return;
+      }
+    }
+    if (r === 'discount-items' || r === 'mas-disc-item') {
+      if (window.DiscountsPage) {
+        window.DiscountsPage.renderPage(outlet, 'items');
+        return;
+      }
+    }
+    if (r === 'discount-bill' || r === 'mas-disc-bill') {
+      if (window.DiscountsPage) {
+        window.DiscountsPage.renderPage(outlet, 'bill');
+        return;
+      }
+    }
+
+    // 13. Opening Balances
+    if (r === 'opening-stock' || r === 'mas-ob-stock') {
+      if (window.OpeningBalancesPage) {
+        window.OpeningBalancesPage.renderPage(outlet, 'stock');
+        return;
+      }
+    }
+    if (r === 'customer-balances' || r === 'mas-ob-customer') {
+      if (window.OpeningBalancesPage) {
+        window.OpeningBalancesPage.renderPage(outlet, 'customer');
+        return;
+      }
+    }
+    if (r === 'supplier-balances' || r === 'mas-ob-supplier' || r === 'mas-opening-balances') {
+      if (window.OpeningBalancesPage) {
+        window.OpeningBalancesPage.renderPage(outlet, 'supplier');
+        return;
+      }
+    }
+
+    // 14. Loyalty Master
+    if (r === 'loyalty-points' || r === 'mas-loy-points' || r === 'mas-loyalty' || r === 'loyalty') {
+      if (window.LoyaltyPage) {
+        window.LoyaltyPage.renderPage(outlet, 'points');
+        return;
+      }
+    }
+    if (r === 'reward-rules' || r === 'mas-loy-rules') {
+      if (window.LoyaltyPage) {
+        window.LoyaltyPage.renderPage(outlet, 'rules');
+        return;
+      }
+    }
+    if (r === 'membership-types' || r === 'mas-loy-memberships') {
+      if (window.LoyaltyPage) {
+        window.LoyaltyPage.renderPage(outlet, 'tiers');
+        return;
+      }
     }
 
     // 6. Purchase Entry

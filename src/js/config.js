@@ -1,18 +1,43 @@
 /**
- * RetailNext — Live Cloud & Application Configuration
- * Embedded directly in code for seamless live connection.
- * End users never see or configure Supabase URLs or keys in UI modals.
+ * Retail Next — Central Application & API Configuration
+ *
+ * Theme & Design System:
+ *   - Primary Purple: #5e2b9d (Hover: #4d2282)
+ *   - Crisp slate borders: border-slate-200 (#e2e8f0)
+ *   - Containers: rounded-xl with shadow-2xs
+ *   - Strict Pagination: PAGE_SIZE = 24 for fast, server-light rendering
+ *
+ * Endpoint:
+ *   - https://retailnext.doonext.app/
  */
 
 'use strict';
 
 window.RETAILNEXT_CONFIG = {
-  // Live Supabase Project URL
-  supabaseUrl: 'https://buntiznwxbzlyxwpcnjv.supabase.co',
+  // Live API Base URL
+  apiBaseUrl: 'https://retailnext.doonext.app',
 
-  // Live Supabase Public Anon Key
-  supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1bnRpem53eGJ6bHl4d3Bjbmp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4MzExMjEsImV4cCI6MjEwODQwNzEyMX0.NUpI4hVeL31Ovd5TYAQmPkAI2vQqTs0IsVhEPq2kTSY',
+  // Pagination standard
+  pageSize: 24,
 
-  serviceKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1bnRpem53eGJ6bHl4d3Bjbmp2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MjgzMTEyMSwiZXhwIjoyMTA4NDA3MTIxfQ.rUiMa_obYBV8NS3fMPrwil0xSL5KEp9yfngfUDc3B9Q'
+  // Theme constants
+  theme: {
+    primaryPurple: '#5e2b9d',
+    primaryHover: '#4d2282',
+    primaryLight: '#f3e8ff',
+    slateBorder: '#e2e8f0',
+    slateBg: '#f8fafc',
+    textDark: '#0f172a',
+    textMuted: '#64748b'
+  },
+
+  // Active Storage keys for multi-tenant context
+  storageKeys: {
+    session: 'retailnext_session',
+    user: 'retailnext_user',
+    staff: 'retailnext_staff',
+    activeStore: 'retailnext_active_store',
+    activeBusiness: 'retailnext_active_business',
+    authToken: 'retailnext_auth_token'
+  }
 };
-

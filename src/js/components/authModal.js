@@ -1,486 +1,205 @@
 /**
- * RetailNext — Authentication & High-Security Tenant Verification View
- *
- * Implements:
- *   1. Supabase Email & Password Login and Sign Up.
- *   2. Tenant details registration (Name, Mobile, City, Address) with status='inactive', expiry_date=null.
- *   3. Strict Security Gatekeeper:
- *      - Checks status === 'active'
- *      - Checks expiry_date != null AND expiry_date >= today
- *      - If not satisfied -> BLOCKS entry and displays Contact Administrator screen.
- *
- * Note: Cloud credentials (Supabase URL & Anon Key) are embedded directly in code/config
- * and are never exposed or requested in the user-facing modal.
+ * Retail Next — Authentication Modal
+ * Supports:
+ *   1. Business Owner / Admin Login (Email & Password -> /api/auth/login)
+ *   2. Cashier & Staff Terminal Login (Login ID & MPIN -> /api/auth/staff-login)
+ *   3. Session Status & Logout
  */
 
 'use strict';
 
-window.AuthModal = (() => {
+(function(global) {
+  let modalEl = null;
 
-  let containerEl = null;
-  let currentView = 'LOGIN'; // 'LOGIN' | 'SIGNUP' | 'TENANT_REG' | 'LOCKED'
-  let lockReason = '';
-  let pendingUser = null;
-  let onAuthenticatedCallback = null;
+  function renderModal() {
+    if (document.getElementById('rn-auth-modal')) return;
 
-  function init(callback) {
-    onAuthenticatedCallback = callback;
+    modalEl = document.createElement('div');
+    modalEl.id = 'rn-auth-modal';
+    modalEl.className = 'modal-overlay';
 
-    let el = document.getElementById('auth-overlay');
-    if (!el) {
-      el = document.createElement('div');
-      el.id = 'auth-overlay';
-      el.className = 'auth-overlay';
-      document.body.appendChild(el);
-    }
-    containerEl = el;
+    const currentUser = global.apiService?.user;
+    const currentStaff = global.apiService?.staff;
+    const currentBiz = global.apiService?.activeBusiness;
 
-    // Check existing session
-    checkSession();
-  }
+    modalEl.innerHTML = `
+      <div class="modal-container" style="max-width:440px;">
+        <div class="modal-header">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:32px;height:32px;border-radius:8px;background:var(--primary-purple);display:flex;align-items:center;justify-content:center;color:#fff;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <div>
+              <h3 class="modal-title">Account & Terminal Authentication</h3>
+              <p style="font-size:11.5px;color:var(--slate-500);">Connected to ${global.apiService?.baseUrl || 'retailnext.doonext.app'}</p>
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-icon" id="auth-modal-close-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
 
-  async function checkSession() {
-    const service = window.SupabaseService;
-    const session = service ? service.getSession() : null;
-    const user = service ? service.getUser() : null;
+        <div class="modal-body" style="padding:18px 20px;">
+          <!-- Active Session Pill -->
+          <div style="background:var(--slate-50);border:1px solid var(--border-slate-200);border-radius:var(--radius-xl);padding:12px;margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--slate-500);">Active Context</span>
+              <span class="badge badge-purple">${currentBiz?.name || 'Retail Next'}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="user-avatar" style="width:36px;height:36px;font-size:14px;">${(currentUser?.name || 'A')[0]}</div>
+              <div style="flex:1;">
+                <div style="font-weight:600;font-size:13px;color:var(--slate-900);">${currentUser?.name || 'Administrator'}</div>
+                <div style="font-size:11.5px;color:var(--slate-500);">${currentUser?.email || 'admin@retailnext.com'} · ${currentStaff?.name ? 'Cashier: ' + currentStaff.name : 'Owner'}</div>
+              </div>
+              <button class="btn btn-secondary btn-sm" id="auth-logout-btn" style="color:var(--color-danger);border-color:#fecaca;">
+                Logout
+              </button>
+            </div>
+          </div>
 
-    if (!session || !user) {
-      renderView('LOGIN');
-      show();
-      return;
-    }
+          <!-- Auth Mode Tabs -->
+          <div style="display:flex;border-bottom:1px solid var(--border-slate-200);margin-bottom:16px;">
+            <button id="tab-btn-owner" class="btn btn-ghost" style="flex:1;border-bottom:2px solid var(--primary-purple);color:var(--primary-purple);border-radius:0;font-weight:600;">
+              Business Owner
+            </button>
+            <button id="tab-btn-staff" class="btn btn-ghost" style="flex:1;border-bottom:2px solid transparent;color:var(--slate-500);border-radius:0;">
+              Cashier / Staff MPIN
+            </button>
+          </div>
 
-    // User is logged in -> verify tenant
-    try {
-      showLoading('Verifying store subscription & security clearance...');
-      const tenant = await service.fetchUserTenant(user.id);
+          <!-- Form 1: Business Owner (Email & Password) -->
+          <form id="owner-login-form">
+            <div class="form-group">
+              <label class="form-label">Business Email</label>
+              <input type="email" id="owner-email" class="form-input" placeholder="admin@retailnext.com" value="${currentUser?.email || 'admin@retailnext.com'}" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <input type="password" id="owner-password" class="form-input" placeholder="••••••••" required />
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;margin-top:4px;" id="owner-submit-btn">
+              Authenticate Owner
+            </button>
+          </form>
 
-      if (!tenant) {
-        pendingUser = user;
-        renderView('TENANT_REG');
-        show();
-        return;
-      }
+          <!-- Form 2: Cashier Staff (Login ID & MPIN) -->
+          <form id="staff-login-form" style="display:none;">
+            <div class="form-group">
+              <label class="form-label">POS Terminal Login ID</label>
+              <input type="text" id="staff-login-id" class="form-input" placeholder="e.g. CASHIER01" value="${currentStaff?.loginId || 'CASHIER01'}" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">4-Digit POS MPIN</label>
+              <input type="password" id="staff-mpin" class="form-input" placeholder="••••" maxlength="6" required />
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;margin-top:4px;" id="staff-submit-btn">
+              Authorize Terminal Cashier
+            </button>
+          </form>
+        </div>
+      </div>
+    `;
 
-      service.setActiveTenant(tenant);
+    document.body.appendChild(modalEl);
 
-      // Verify strict security conditions
-      const verification = service.verifyTenantAccess(tenant);
-      if (!verification.allowed) {
-        lockReason = verification.message;
-        renderView('LOCKED');
-        show();
-        return;
-      }
+    // Event Listeners
+    const closeBtn = document.getElementById('auth-modal-close-btn');
+    closeBtn.onclick = () => modalEl.remove();
 
-      // Security check passed!
-      hide();
-      if (onAuthenticatedCallback) {
-        onAuthenticatedCallback(tenant, user);
-      }
-    } catch (err) {
-      console.warn('[AuthModal] Verification check error:', err);
-      // If offline, check if local cached tenant is active and unexpired
-      const cachedTenant = service.getActiveTenant();
-      if (cachedTenant) {
-        const verification = service.verifyTenantAccess(cachedTenant);
-        if (verification.allowed) {
-          hide();
-          if (onAuthenticatedCallback) onAuthenticatedCallback(cachedTenant, user);
-          return;
+    const tabOwner = document.getElementById('tab-btn-owner');
+    const tabStaff = document.getElementById('tab-btn-staff');
+    const formOwner = document.getElementById('owner-login-form');
+    const formStaff = document.getElementById('staff-login-form');
+
+    tabOwner.onclick = () => {
+      tabOwner.style.borderBottomColor = 'var(--primary-purple)';
+      tabOwner.style.color = 'var(--primary-purple)';
+      tabOwner.style.fontWeight = '600';
+      tabStaff.style.borderBottomColor = 'transparent';
+      tabStaff.style.color = 'var(--slate-500)';
+      tabStaff.style.fontWeight = '500';
+      formOwner.style.display = 'block';
+      formStaff.style.display = 'none';
+    };
+
+    tabStaff.onclick = () => {
+      tabStaff.style.borderBottomColor = 'var(--primary-purple)';
+      tabStaff.style.color = 'var(--primary-purple)';
+      tabStaff.style.fontWeight = '600';
+      tabOwner.style.borderBottomColor = 'transparent';
+      tabOwner.style.color = 'var(--slate-500)';
+      tabOwner.style.fontWeight = '500';
+      formStaff.style.display = 'block';
+      formOwner.style.display = 'none';
+    };
+
+    // Owner Login Submit
+    formOwner.onsubmit = async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('owner-email').value.trim();
+      const password = document.getElementById('owner-password').value;
+      const btn = document.getElementById('owner-submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Authenticating...';
+
+      try {
+        const res = await global.apiService.login(email, password);
+        if (res.ok) {
+          global.Toast?.success('Authenticated successfully with Retail Next API');
+          modalEl.remove();
+          global.RetailNextHeader?.refresh();
         } else {
-          lockReason = verification.message;
-          renderView('LOCKED');
-          show();
-          return;
+          global.Toast?.error(res.error || 'Authentication failed. Please check credentials.');
         }
+      } catch (err) {
+        global.Toast?.error(err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Authenticate Owner';
       }
-      renderView('LOGIN');
-      show();
-    }
-  }
-
-  function show() {
-    if (containerEl) containerEl.style.display = 'flex';
-  }
-
-  function hide() {
-    if (containerEl) containerEl.style.display = 'none';
-  }
-
-  function showLoading(msg = 'Authenticating...') {
-    if (!containerEl) return;
-    containerEl.innerHTML = `
-      <div class="auth-card" style="text-align:center;padding:40px 24px;">
-        <div class="spinner"></div>
-        <div style="font-size:14px;font-weight:600;margin-top:16px;color:#0f172a;">${msg}</div>
-        <div style="font-size:12px;color:#64748b;margin-top:4px;">Connecting to Cloud & verifying credentials</div>
-      </div>
-    `;
-    show();
-  }
-
-  function renderView(viewName) {
-    currentView = viewName;
-    if (!containerEl) return;
-
-    if (viewName === 'LOGIN') {
-      renderLoginView();
-    } else if (viewName === 'SIGNUP') {
-      renderSignUpView();
-    } else if (viewName === 'TENANT_REG') {
-      renderTenantRegView();
-    } else if (viewName === 'LOCKED') {
-      renderLockedView();
-    }
-  }
-
-  // ─── 1. Login View ────────────────────────────────────────────────────────
-  function renderLoginView() {
-    containerEl.innerHTML = `
-      <div class="auth-card">
-        <div class="auth-header">
-          <div class="auth-brand">
-            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-              <line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
-            </svg>
-            <span>RetailNext</span>
-          </div>
-          <div class="auth-title">Welcome Back</div>
-          <div class="auth-subtitle">Sign in to your retail store account</div>
-        </div>
-
-        <form id="auth-login-form">
-          <div class="form-group" style="margin-bottom:14px;">
-            <label>Email Address</label>
-            <input type="email" id="auth-email" class="pos-input" required placeholder="store.owner@example.com" />
-          </div>
-
-          <div class="form-group" style="margin-bottom:18px;">
-            <label>Password</label>
-            <input type="password" id="auth-password" class="pos-input" required placeholder="••••••••" />
-          </div>
-
-          <div id="auth-error-msg" class="auth-error-box" style="display:none;"></div>
-
-          <button type="submit" class="btn btn--primary btn--lg" style="width:100%;margin-bottom:12px;" id="auth-submit-btn">
-            Sign In to Store
-          </button>
-        </form>
-
-        <div class="auth-footer-links">
-          <span>Don't have an account? <a href="#" id="link-goto-signup">Create Account</a></span>
-        </div>
-      </div>
-    `;
-
-    containerEl.querySelector('#link-goto-signup').onclick = (e) => {
-      e.preventDefault();
-      renderView('SIGNUP');
     };
 
-    const form = containerEl.querySelector('#auth-login-form');
-    form.onsubmit = async (e) => {
+    // Staff Login Submit
+    formStaff.onsubmit = async (e) => {
       e.preventDefault();
-      const email = containerEl.querySelector('#auth-email').value;
-      const pass = containerEl.querySelector('#auth-password').value;
-      const errBox = containerEl.querySelector('#auth-error-msg');
-      const submitBtn = containerEl.querySelector('#auth-submit-btn');
-
-      errBox.style.display = 'none';
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Verifying...';
+      const loginId = document.getElementById('staff-login-id').value.trim();
+      const mpin = document.getElementById('staff-mpin').value.trim();
+      const btn = document.getElementById('staff-submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Verifying MPIN...';
 
       try {
-        await window.SupabaseService.signIn(email, pass);
-        await checkSession();
-      } catch (err) {
-        errBox.textContent = err.message || 'Login failed. Please verify email and password.';
-        errBox.style.display = 'block';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Sign In to Store';
-      }
-    };
-  }
-
-  // ─── 2. Sign Up View (Create Account) ─────────────────────────────────────
-  function renderSignUpView() {
-    containerEl.innerHTML = `
-      <div class="auth-card">
-        <div class="auth-header">
-          <div class="auth-brand">
-            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-              <line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
-            </svg>
-            <span>RetailNext</span>
-          </div>
-          <div class="auth-title">Create Store Account</div>
-          <div class="auth-subtitle">Register new login for RetailNext</div>
-        </div>
-
-        <form id="auth-signup-form">
-          <div class="form-group" style="margin-bottom:12px;">
-            <label>Email Address</label>
-            <input type="email" id="signup-email" class="pos-input" required placeholder="store.owner@example.com" />
-          </div>
-
-          <div class="form-group" style="margin-bottom:12px;">
-            <label>Password (Min. 6 chars)</label>
-            <input type="password" id="signup-password" class="pos-input" required minlength="6" placeholder="••••••••" />
-          </div>
-
-          <div class="form-group" style="margin-bottom:16px;">
-            <label>Confirm Password</label>
-            <input type="password" id="signup-confirm" class="pos-input" required minlength="6" placeholder="••••••••" />
-          </div>
-
-          <div id="signup-error-msg" class="auth-error-box" style="display:none;"></div>
-
-          <button type="submit" class="btn btn--primary btn--lg" style="width:100%;margin-bottom:12px;" id="signup-submit-btn">
-            Create Account & Continue
-          </button>
-        </form>
-
-        <div class="auth-footer-links">
-          <span>Already have an account? <a href="#" id="link-goto-login">Sign In</a></span>
-        </div>
-      </div>
-    `;
-
-    containerEl.querySelector('#link-goto-login').onclick = (e) => {
-      e.preventDefault();
-      renderView('LOGIN');
-    };
-
-    const form = containerEl.querySelector('#auth-signup-form');
-    form.onsubmit = async (e) => {
-      e.preventDefault();
-      const email = containerEl.querySelector('#signup-email').value;
-      const pass = containerEl.querySelector('#signup-password').value;
-      const confirm = containerEl.querySelector('#signup-confirm').value;
-      const errBox = containerEl.querySelector('#signup-error-msg');
-      const submitBtn = containerEl.querySelector('#signup-submit-btn');
-
-      if (pass !== confirm) {
-        errBox.textContent = 'Passwords do not match.';
-        errBox.style.display = 'block';
-        return;
-      }
-
-      errBox.style.display = 'none';
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Creating Account...';
-
-      try {
-        const res = await window.SupabaseService.signUp(email, pass);
-        pendingUser = res.user || (res.session && res.session.user) || res;
-
-        // Attempt automatic sign-in if token was not in signup response
-        if (!window.SupabaseService.getSession()?.access_token) {
-          await window.SupabaseService.signIn(email, pass).catch(() => {});
+        const res = await global.apiService.staffLogin(loginId, mpin);
+        if (res.ok) {
+          global.Toast?.success(`Cashier session opened for ${global.apiService.staff?.name || loginId}`);
+          modalEl.remove();
+          global.RetailNextHeader?.refresh();
+        } else {
+          global.Toast?.error(res.error || 'Invalid Terminal ID or MPIN.');
         }
-
-        renderView('TENANT_REG');
       } catch (err) {
-        console.error('[AuthModal] Signup error:', err);
-        errBox.textContent = err.message || 'Failed to create account.';
-        errBox.style.display = 'block';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Create Account & Continue';
+        global.Toast?.error(err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Authorize Terminal Cashier';
+      }
+    };
+
+    // Logout
+    document.getElementById('auth-logout-btn').onclick = async () => {
+      await global.apiService.logout();
+      global.Toast?.info('Logged out from current session');
+      modalEl.remove();
+      if (global.RetailNextRouter) {
+        global.RetailNextRouter.navigate('/login');
+      } else {
+        window.location.hash = '#/login';
       }
     };
   }
 
-  // ─── 3. Tenant Registration View ──────────────────────────────────────────
-  /**
-   * Prompt for Tenant Details:
-   *   - Name
-   *   - Mobile number
-   *   - City
-   *   - Full Address
-   * On save: status = 'inactive', expiry_date = null
-   */
-  function renderTenantRegView() {
-    containerEl.innerHTML = `
-      <div class="auth-card" style="max-width:480px;">
-        <div class="auth-header">
-          <div class="auth-brand">
-            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-              <polyline points="9 22 9 12 15 12 15 22"/>
-            </svg>
-            <span>Store Registration</span>
-          </div>
-          <div class="auth-title">Complete Tenant Setup</div>
-          <div class="auth-subtitle">Provide your store details to finalize setup</div>
-        </div>
-
-        <form id="tenant-reg-form">
-          <div class="form-group" style="margin-bottom:12px;">
-            <label>Store / Business Name <span class="text-error">*</span></label>
-            <input type="text" id="tr-name" class="pos-input" required placeholder="e.g. Hyderabad Supermart" />
-          </div>
-
-          <div class="form-group" style="margin-bottom:12px;">
-            <label>Mobile Number <span class="text-error">*</span></label>
-            <input type="text" id="tr-mobile" class="pos-input" required placeholder="10-digit mobile number" />
-          </div>
-
-          <div class="form-group" style="margin-bottom:12px;">
-            <label>City <span class="text-error">*</span></label>
-            <input type="text" id="tr-city" class="pos-input" required placeholder="e.g. Hyderabad" />
-          </div>
-
-          <div class="form-group" style="margin-bottom:16px;">
-            <label>Full Address <span class="text-error">*</span></label>
-            <textarea id="tr-address" class="pos-input" rows="2" required placeholder="Shop No, Street, Landmark, Pincode"></textarea>
-          </div>
-
-          <div class="security-info-box">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
-            <span>Once saved, your account will be marked <strong>Inactive</strong> pending administrator verification.</span>
-          </div>
-
-          <div id="tr-error-msg" class="auth-error-box" style="display:none;margin-top:10px;"></div>
-
-          <button type="submit" class="btn btn--primary btn--lg" style="width:100%;margin-top:14px;" id="tr-submit-btn">
-            Save Tenant Details
-          </button>
-        </form>
-      </div>
-    `;
-
-    const form = containerEl.querySelector('#tenant-reg-form');
-    form.onsubmit = async (e) => {
-      e.preventDefault();
-      const name = containerEl.querySelector('#tr-name').value;
-      const mobile = containerEl.querySelector('#tr-mobile').value;
-      const city = containerEl.querySelector('#tr-city').value;
-      const address = containerEl.querySelector('#tr-address').value;
-      const errBox = containerEl.querySelector('#tr-error-msg');
-      const submitBtn = containerEl.querySelector('#tr-submit-btn');
-
-      errBox.style.display = 'none';
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Saving Store Details...';
-
-      try {
-        let user = pendingUser || window.SupabaseService.getUser();
-        if (!user || !user.id) {
-          const sess = window.SupabaseService.getSession();
-          if (sess && sess.user) user = sess.user;
-        }
-
-        if (!user || !user.id) {
-          throw new Error('User account details not found. Please return to login and sign in.');
-        }
-
-        const tenant = await window.SupabaseService.registerTenant(user, {
-          name,
-          mobile,
-          city,
-          address
-        });
-
-        // Newly created tenants are inactive with expiry_date=null
-        lockReason = 'Your store registration has been recorded successfully. Your account is currently INACTIVE. Please contact the administrator to activate your subscription and license.';
-        renderView('LOCKED');
-      } catch (err) {
-        errBox.textContent = err.message || 'Failed to save store details.';
-        errBox.style.display = 'block';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Save Tenant Details';
-      }
-    };
-  }
-
-  // ─── 4. High-Security Locked View (Contact Administrator Screen) ──────────
-  /**
-   * Shown when:
-   *   - status !== 'active' OR
-   *   - expiry_date is null OR
-   *   - expiry_date < today
-   */
-  function renderLockedView() {
-    const tenant = window.SupabaseService.getActiveTenant() || {};
-    const user = window.SupabaseService.getUser() || {};
-
-    containerEl.innerHTML = `
-      <div class="auth-card" style="max-width:520px;text-align:center;">
-        <div class="lock-shield-icon">
-          <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#ef4444" stroke-width="2">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            <line x1="12" y1="8" x2="12" y2="12"/>
-            <line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
-        </div>
-
-        <h2 style="font-size:20px;font-weight:700;color:#0f172a;margin-top:12px;">Access Restricted</h2>
-        <div style="font-size:13px;color:#ef4444;font-weight:600;margin-top:6px;">
-          ${escapeHtml(lockReason || 'Tenant status is Inactive or subscription has expired.')}
-        </div>
-
-        <div class="tenant-details-card" style="margin-top:16px;text-align:left;">
-          <div class="tenant-detail-row">
-            <span class="detail-label">Store Name:</span>
-            <strong class="detail-val">${escapeHtml(tenant.name || 'Store Account')}</strong>
-          </div>
-          <div class="tenant-detail-row">
-            <span class="detail-label">Account Status:</span>
-            <span class="status-chip status-chip--${tenant.status === 'active' ? 'success' : 'warning'}">
-              ${escapeHtml(tenant.status || 'inactive')}
-            </span>
-          </div>
-          <div class="tenant-detail-row">
-            <span class="detail-label">Expiry Date:</span>
-            <span class="font-mono text-secondary">${tenant.expiry_date ? new Date(tenant.expiry_date).toLocaleDateString() : 'Not Assigned (Null)'}</span>
-          </div>
-          <div class="tenant-detail-row">
-            <span class="detail-label">Tenant ID:</span>
-            <code class="tenant-id-code">${escapeHtml(tenant.id || 'Pending')}</code>
-          </div>
-          <div class="tenant-detail-row">
-            <span class="detail-label">Registered Email:</span>
-            <span>${escapeHtml(user.email || '—')}</span>
-          </div>
-        </div>
-
-        <div style="margin-top:20px;padding:12px;background:#fef2f2;border:1px solid #fee2e2;border-radius:6px;font-size:12px;color:#991b1b;line-height:1.5;">
-          <strong>Action Required:</strong> Please contact your system administrator with your <strong>Tenant ID</strong> above to activate your store subscription.
-        </div>
-
-        <div style="margin-top:20px;display:flex;gap:12px;justify-content:center;">
-          <button class="btn btn--outline" id="lock-btn-refresh">Check Activation Status</button>
-          <button class="btn btn--danger" id="lock-btn-logout">Sign Out</button>
-        </div>
-      </div>
-    `;
-
-    containerEl.querySelector('#lock-btn-refresh').onclick = async () => {
-      await checkSession();
-    };
-
-    containerEl.querySelector('#lock-btn-logout').onclick = async () => {
-      await window.SupabaseService.signOut();
-      renderView('LOGIN');
-    };
-  }
-
-  function escapeHtml(str) {
-    if (!str) return '';
-    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
-
-  return {
-    init,
-    checkSession,
-    show,
-    hide,
-    renderView
+  global.AuthModal = {
+    open: renderModal
   };
-})();
-
+})(window);

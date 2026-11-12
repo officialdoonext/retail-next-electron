@@ -9,144 +9,141 @@
       script-src 'self' 'unsafe-inline';
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       font-src 'self' https://fonts.gstatic.com;
-      img-src 'self' data: https:;
+      img-src 'self' data: https: blob:;
       connect-src 'self' https: wss:;
     "
   />
-  <title>RetailNext — POS & Retail Management Desktop Application</title>
-  <meta name="description" content="RetailNext — Professional Offline-First Retail POS Desktop Application" />
+  <title>Retail Next — Retail Management & POS Desktop Platform</title>
+  <meta name="description" content="Retail Next — Professional Modern Retail ERP & POS Desktop Platform" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./css/variables.css" />
   <link rel="stylesheet" href="./css/style.css" />
 </head>
 <body>
 
-  <div id="desktop-app" class="desktop-layout">
+  <div class="app-shell">
 
-    <!-- ── Header: Brand, Branch, Global Search, Cashier ────────────────────── -->
-    <header class="app-header">
-      <div class="app-header__left">
-        <div class="app-brand" title="RetailNext Desktop Application">
-          <svg class="app-brand__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-            <line x1="3" y1="6" x2="21" y2="6"/>
-            <path d="M16 10a4 4 0 0 1-8 0"/>
-          </svg>
-          <span class="app-brand__title">RetailNext</span>
-        </div>
+    <!-- ── 1. Collapsible Sidebar Accordion Navigation ────────────────────── -->
+    <aside class="app-sidebar" id="app-sidebar">
+      <!-- Injected by SidebarNav -->
+    </aside>
 
-        <div class="branch-pill" id="branch-indicator" title="Switch Store Branch">
-          <span class="branch-dot"></span>
-          <span class="branch-name" id="branch-name-text">Branch: Main Store</span>
-          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-      </div>
+    <!-- ── 2. Main Content Viewport ──────────────────────────────────────── -->
+    <div class="app-main">
+      
+      <!-- Top Application Header Bar -->
+      <header class="app-header" id="app-header">
+        <!-- Injected by HeaderBar -->
+      </header>
 
-      <!-- Center: Global Universal Search (Ctrl+F) -->
-      <div class="app-header__center" id="global-search-container">
-        <!-- Injected by GlobalSearch.init() -->
-      </div>
+      <!-- Central Workspace Outlet for Routed Pages -->
+      <main class="workspace-outlet" id="workspace-outlet">
+        <!-- Rendered Page View -->
+      </main>
 
-      <!-- Right: Cashier Session & Help -->
-      <div class="app-header__right">
-        <div class="cashier-pill" id="cashier-indicator" title="Active Cashier Session">
-          <div class="cashier-avatar">A</div>
-          <div class="cashier-details">
-            <span class="cashier-title">Cashier: Current User</span>
-            <span class="cashier-role">Administrator</span>
+      <!-- Bottom Desktop Status Bar -->
+      <footer class="app-statusbar" id="app-statusbar" role="contentinfo">
+        <div class="statusbar-left">
+          <div class="statusbar-item" id="statusbar-api">
+            <span style="color:#10b981;">● Online: retailnext.doonext.app</span>
+          </div>
+          <div class="statusbar-item">
+            <span>Branch: <strong id="statusbar-store">Main Retail Store</strong></span>
+          </div>
+          <div class="statusbar-item">
+            <span>Cashier: <strong id="statusbar-cashier">Rahul Kumar</strong></span>
           </div>
         </div>
 
-        <button class="sys-btn" id="header-btn-help" title="Keyboard Shortcuts Reference (F1)">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
-        </button>
-      </div>
-    </header>
+        <div class="statusbar-right">
+          <div class="statusbar-item">
+            <span class="badge badge-purple" style="font-size:10px;padding:2px 6px;">Strict PAGE_SIZE = 24</span>
+          </div>
+          <div class="statusbar-item">
+            <span>Retail Next v1.0.0</span>
+          </div>
+          <div class="statusbar-item" style="font-family:var(--font-mono);font-weight:600;">
+            <span id="statusbar-clock">--:--:--</span>
+          </div>
+        </div>
+      </footer>
 
-    <!-- ── Top Menu Bar: Traditional 9 Desktop Menus with Popovers ───────────── -->
-    <nav class="top-menu-bar-container" id="top-menu-bar-container">
-      <!-- Injected by TopMenuBar.init() -->
-    </nav>
-
-    <!-- ── Central Workspace (Direct Single-Page View) ───────────────────────── -->
-    <main class="central-workspace" id="central-workspace">
-      <div id="workspace-outlet" class="workspace-outlet"></div>
-    </main>
-
-    <!-- ── Desktop Status Bar ──────────────────────────────────────────────── -->
-    <footer class="desktop-statusbar" role="contentinfo">
-      <div class="statusbar-item statusbar-ready">
-        <span class="status-dot status-dot--connected" id="statusbar-dot"></span>
-        <span id="statusbar-text">Ready · Database connected · Cashier: Current User</span>
-      </div>
-      <div class="statusbar-item">
-        <span>Branch: <strong>Main Store</strong></span>
-      </div>
-      <div class="statusbar-item">
-        <span id="statusbar-db-status">Database: SQLite WAL (Connected)</span>
-      </div>
-      <div class="statusbar-spacer"></div>
-      <div class="statusbar-item">
-        <span id="statusbar-sync-text">Sync: <strong>Offline Ready</strong></span>
-      </div>
-      <div class="statusbar-item">
-        <span>RetailNext v<span id="statusbar-version">1.0.0</span></span>
-      </div>
-      <div class="statusbar-item statusbar-time">
-        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-        </svg>
-        <span id="statusbar-time">--:--:--</span>
-      </div>
-    </footer>
-
-    <!-- Full-screen Security & Authentication Overlay -->
-    <div id="auth-overlay" class="auth-overlay" style="display:none;"></div>
+    </div>
 
   </div>
 
-  <!-- Load Application Scripts -->
+  <!-- ── Application Scripts ──────────────────────────────────────────────── -->
   <script src="./js/config.js"></script>
-  <script src="./js/menuData.js"></script>
-  <script src="./js/sampleData.js"></script>
-  <script src="./js/services/supabaseService.js"></script>
-  <script src="./js/services/syncEngine.js"></script>
+  <script src="./js/services/apiService.js"></script>
+  <script src="./js/services/escposService.js"></script>
+  <script src="./js/services/printerService.js"></script>
+  
+  <!-- UI Components -->
+  <script src="./js/components/toast.js"></script>
+  <script src="./js/components/receiptModal.js"></script>
+  <script src="./js/components/thermalPrinterModal.js"></script>
   <script src="./js/components/authModal.js"></script>
-  <script src="./js/components/topMenuBar.js"></script>
+  <script src="./js/components/storeSwitcherModal.js"></script>
   <script src="./js/components/globalSearch.js"></script>
-  <script src="./js/components/shortcuts.js"></script>
-  <script src="./js/pages/companyPage.js"></script>
-  <script src="./js/pages/financialYearPage.js"></script>
-  <script src="./js/pages/branchPage.js"></script>
-  <script src="./js/pages/dataManagementPage.js"></script>
-  <script src="./js/pages/importDataPage.js"></script>
-  <script src="./js/pages/sessionPage.js"></script>
-  <script src="./js/pages/printSetupPage.js"></script>
-  <script src="./js/pages/dashboard.js"></script>
-  <script src="./js/pages/posBilling.js"></script>
-  <script src="./js/pages/productMaster.js"></script>
+  <script src="./js/components/sidebarNav.js"></script>
+  <script src="./js/components/headerBar.js"></script>
+
+  <!-- Auth & Routed Business Manager Pages -->
+  <script src="./js/pages/loginPage.js"></script>
+  <script src="./js/pages/dashboardPage.js"></script>
+  <script src="./js/pages/posBillingPage.js"></script>
+  <script src="./js/pages/storesPage.js"></script>
+
+  <!-- Sales Manager -->
+  <script src="./js/pages/salesInvoicesPage.js"></script>
+  <script src="./js/pages/employeeSalesPage.js"></script>
+  <script src="./js/pages/counterSalesPage.js"></script>
+
+  <!-- Product Manager -->
   <script src="./js/pages/categoriesPage.js"></script>
-  <script src="./js/pages/brandsPage.js"></script>
-  <script src="./js/pages/uomPage.js"></script>
-  <script src="./js/pages/variantsPage.js"></script>
-  <script src="./js/pages/barcodesPage.js"></script>
-  <script src="./js/pages/pricingPage.js"></script>
-  <script src="./js/pages/taxMasterPage.js"></script>
-  <script src="./js/pages/customers.js"></script>
-  <script src="./js/pages/suppliersPage.js"></script>
-  <script src="./js/pages/paymentModesPage.js"></script>
-  <script src="./js/pages/discountsPage.js"></script>
-  <script src="./js/pages/openingBalancesPage.js"></script>
-  <script src="./js/pages/loyaltyPage.js"></script>
-  <script src="./js/pages/purchaseEntry.js"></script>
-  <script src="./js/pages/stockSummary.js"></script>
-  <script src="./js/pages/reports.js"></script>
-  <script src="./js/pages/settingsPage.js"></script>
-  <script src="./js/pages/modulePage.js"></script>
+  <script src="./js/pages/variationsPage.js"></script>
+  <script src="./js/pages/productsCatalogPage.js"></script>
+  <script src="./js/pages/barcodeGeneratorPage.js"></script>
+
+  <!-- Return & Exchange Manager -->
+  <script src="./js/pages/returnsPage.js"></script>
+  <script src="./js/pages/exchangesPage.js"></script>
+
+  <!-- Stock Manager -->
+  <script src="./js/pages/warehouseStockPage.js"></script>
+  <script src="./js/pages/storeStockPage.js"></script>
+  <script src="./js/pages/stockTransfersPage.js"></script>
+
+  <!-- Customer Manager -->
+  <script src="./js/pages/customersDirectoryPage.js"></script>
+  <script src="./js/pages/customer360Page.js"></script>
+
+  <!-- Discount Manager -->
+  <script src="./js/pages/orderCouponsPage.js"></script>
+  <script src="./js/pages/productCouponsPage.js"></script>
+  <script src="./js/pages/customerCouponsPage.js"></script>
+
+  <!-- Vendors Manager -->
+  <script src="./js/pages/vendorsDirectoryPage.js"></script>
+  <script src="./js/pages/purchaseOrdersPage.js"></script>
+  <script src="./js/pages/vendorInvoicesPage.js"></script>
+  <script src="./js/pages/vendorDuesPage.js"></script>
+
+  <!-- Staff Manager -->
+  <script src="./js/pages/staffManagerPage.js"></script>
+
+  <!-- Employee HR Manager -->
+  <script src="./js/pages/employeeDirectoryPage.js"></script>
+  <script src="./js/pages/attendancePage.js"></script>
+  <script src="./js/pages/payrollPage.js"></script>
+  <script src="./js/pages/idCardsPage.js"></script>
+  <script src="./js/pages/leavesPage.js"></script>
+  <script src="./js/pages/advancesPage.js"></script>
+
+  <!-- Router & Bootstrap -->
+  <script src="./js/router.js"></script>
   <script src="./js/app.js"></script>
 
 </body>

@@ -59,6 +59,13 @@ const retailAPI = {
    */
   supabaseRequest: (args) => ipcRenderer.invoke('supabase-request', args),
 
+  /**
+   * Performs live API requests to Retail Next API endpoint (https://retailnext.doonext.app)
+   * @param {{ endpoint: string, method?: string, headers?: object, body?: any, params?: object }} options
+   * @returns {Promise<{ ok: boolean, status: number, data: any, error?: string }>}
+   */
+  apiRequest: (options) => ipcRenderer.invoke('api-request', options),
+
   // ─── Future API groups (to be implemented in later phases) ───────────────
   // products:   { getAll, getById, create, update, delete }
   // categories: { getAll, create, update, delete }

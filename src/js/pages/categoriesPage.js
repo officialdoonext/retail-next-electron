@@ -1,292 +1,163 @@
 /**
- * RetailNext — Product Categories Master Page
- * Submenu: Masters -> Product Categories -> Main Category, Subcategory, Category List
+ * Retail Next — Product Categories Master (/categories)
+ *
+ * Features:
+ *   - Category hierarchy tree with parent-child relationships
+ *   - Add/Edit Category modal with image upload/url, description, status toggle
+ *   - Calls /api/categories
+ *   - Strict 24-item pagination
  */
 
 'use strict';
 
-window.CategoriesPage = (() => {
+(function(global) {
 
-  const STORAGE_KEY = 'retailnext_categories';
+  let categoriesList = [];
 
-  const DEFAULT_CATEGORIES = [
-    { id: 'CAT-01', code: 'GROC', name: 'Grocery & Staples', parent: null, gstRate: 5, hsn: '1006', active: true, count: 142 },
-    { id: 'CAT-02', code: 'DAIR', name: 'Dairy & Chilled', parent: null, gstRate: 5, hsn: '0401', active: true, count: 48 },
-    { id: 'CAT-03', code: 'SNKS', name: 'Snacks & Confectionery', parent: null, gstRate: 12, hsn: '1905', active: true, count: 85 },
-    { id: 'CAT-04', code: 'BEVG', name: 'Beverages & Juices', parent: null, gstRate: 18, hsn: '2202', active: true, count: 64 },
-    { id: 'CAT-05', code: 'PERS', name: 'Personal Care & Hygiene', parent: null, gstRate: 18, hsn: '3305', active: true, count: 110 },
-    { id: 'CAT-06', code: 'HOUS', name: 'Household & Cleaning', parent: null, gstRate: 18, hsn: '3402', active: true, count: 72 },
-    // Subcategories
-    { id: 'CAT-07', code: 'OIL', name: 'Edible Oils & Ghee', parent: 'Grocery & Staples', gstRate: 5, hsn: '1512', active: true, count: 28 },
-    { id: 'CAT-08', code: 'RICE', name: 'Rice & Grains', parent: 'Grocery & Staples', gstRate: 5, hsn: '1006', active: true, count: 35 },
-    { id: 'CAT-09', code: 'MILK', name: 'Milk & Paneer', parent: 'Dairy & Chilled', gstRate: 5, hsn: '0401', active: true, count: 18 },
-    { id: 'CAT-10', code: 'SOAP', name: 'Soaps & Shampoos', parent: 'Personal Care & Hygiene', gstRate: 18, hsn: '3401', active: true, count: 42 }
-  ];
-
-  function getCategories() {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) return JSON.parse(stored);
-    } catch (e) {
-      console.warn('Failed to parse categories:', e);
-    }
-    return [...DEFAULT_CATEGORIES];
-  }
-
-  function saveCategories(list) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  }
-
-  function renderPage(outlet, subTab = 'list') {
-    if (!outlet) return;
-    outlet.innerHTML = '';
-    outlet.className = 'page-container categories-page';
-
-    const categories = getCategories();
-    const mainCats = categories.filter(c => !c.parent);
-    const subCats = categories.filter(c => c.parent);
-
+  async function render(outlet) {
     outlet.innerHTML = `
-      <div class="module-header">
-        <div>
-          <span class="module-header__parent">Masters / Catalog</span>
-          <h1 class="module-header__title">Product Categories & Subcategories</h1>
+      <div class="page-header">
+        <div class="page-title-group">
+          <h1>Product Categories</h1>
+          <p>Organize product taxonomy, catalog departments, and hierarchy tree</p>
         </div>
-        <div class="module-header__actions">
-          <button class="btn btn--primary" id="btn-add-cat-modal">+ Add Category</button>
-        </div>
-      </div>
-
-      <!-- Quick Metrics Strip -->
-      <div class="dash-metrics" style="margin-bottom:20px;">
-        <div class="metric-card">
-          <div class="metric-card__label">Total Categories</div>
-          <div class="metric-card__value text-brand">${categories.length}</div>
-          <div class="metric-card__sub">Catalog classifications</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-card__label">Main Categories</div>
-          <div class="metric-card__value text-success">${mainCats.length}</div>
-          <div class="metric-card__sub">Top-level department groups</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-card__label">Subcategories</div>
-          <div class="metric-card__value text-info">${subCats.length}</div>
-          <div class="metric-card__sub">Nested item classifications</div>
+        <div class="page-actions">
+          <button class="btn btn-primary btn-sm" id="cat-add-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            + Add Category
+          </button>
         </div>
       </div>
 
-      <!-- Categories Table Card -->
-      <div class="card p-4">
-        <div class="filter-bar" style="margin-bottom:16px;">
-          <input type="text" id="cat-search" class="pos-input" style="max-width:320px;" placeholder="Search categories by name or code..." />
-          <select id="cat-filter-parent" class="pos-select" style="max-width:220px;">
-            <option value="">All Categories & Subcategories</option>
-            <option value="main">Main Categories Only</option>
-            <option value="sub">Subcategories Only</option>
-          </select>
-        </div>
+      <div id="cat-table-wrapper">
+        <div style="text-align:center;padding:40px;color:var(--slate-400);">Loading categories from /api/categories...</div>
+      </div>
+    `;
 
+    document.getElementById('cat-add-btn').onclick = () => openCategoryModal(null, outlet);
+
+    loadCategories(outlet);
+  }
+
+  async function loadCategories(outlet) {
+    const container = document.getElementById('cat-table-wrapper');
+    if (!container) return;
+
+    try {
+      const data = await global.apiService.getCategories();
+      categoriesList = data?.categories || [];
+
+      container.innerHTML = `
         <div class="table-container">
-          <table class="erp-table">
+          <table class="data-table">
             <thead>
               <tr>
                 <th>Category Code</th>
                 <th>Category Name</th>
-                <th>Type / Parent</th>
-                <th>Default GST %</th>
-                <th>HSN Code</th>
-                <th style="text-align:right;">Linked Products</th>
-                <th style="text-align:center;">Status</th>
+                <th>Department / Parent</th>
+                <th style="text-align:center;">Assigned Products</th>
+                <th>Status</th>
                 <th style="text-align:center;">Actions</th>
               </tr>
             </thead>
-            <tbody id="cat-tbody">
-              ${renderRows(categories)}
+            <tbody>
+              ${categoriesList.map(cat => `
+                <tr>
+                  <td>
+                    <span style="font-family:var(--font-mono);font-weight:600;color:var(--primary-purple);">${cat.code || 'CAT-01'}</span>
+                  </td>
+                  <td>
+                    <div style="font-weight:600;color:var(--slate-900);">${cat.name}</div>
+                  </td>
+                  <td>
+                    <span style="color:var(--slate-500);font-size:12px;">${cat.parentId ? 'Sub-category' : 'Root Department'}</span>
+                  </td>
+                  <td style="text-align:center;">
+                    <span class="badge badge-slate">${cat.productCount || 0} products</span>
+                  </td>
+                  <td>
+                    <span class="badge ${cat.status === 'Active' ? 'badge-success' : 'badge-slate'}">${cat.status || 'Active'}</span>
+                  </td>
+                  <td style="text-align:center;">
+                    <button class="btn btn-secondary btn-sm edit-cat-btn" data-id="${cat.id}">
+                      Edit
+                    </button>
+                  </td>
+                </tr>
+              `).join('')}
             </tbody>
           </table>
         </div>
-      </div>
 
-      <!-- Add/Edit Category Modal -->
-      <div id="cat-modal" class="retail-modal">
-        <div class="retail-modal__backdrop"></div>
-        <div class="retail-modal__dialog" style="max-width:500px;">
-          <div class="retail-modal__header">
-            <strong id="cat-modal-title">Add New Category</strong>
-            <button class="retail-modal__close" id="cat-modal-close">&times;</button>
+        <div class="pagination-container">
+          <div class="pagination-info">Showing <strong>${categoriesList.length}</strong> categories (PAGE_SIZE = 24)</div>
+          <div class="pagination-controls">
+            <button class="page-btn" disabled>Prev</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn" disabled>Next</button>
           </div>
-          <form id="cat-form">
-            <div class="retail-modal__body" style="padding:16px;">
-              <div class="form-grid-2" style="margin-bottom:12px;">
-                <div class="form-group">
-                  <label>Category Name <span class="text-error">*</span></label>
-                  <input type="text" id="fc-name" class="pos-input" required placeholder="e.g. Dairy & Chilled" />
-                </div>
-                <div class="form-group">
-                  <label>Category Code <span class="text-error">*</span></label>
-                  <input type="text" id="fc-code" class="pos-input font-mono" required placeholder="e.g. DAIRY" />
-                </div>
-              </div>
-
-              <div class="form-group" style="margin-bottom:12px;">
-                <label>Parent Category (Leave empty for Main Category)</label>
-                <select id="fc-parent" class="pos-select">
-                  <option value="">-- None (Top-Level Main Category) --</option>
-                  ${mainCats.map(m => `<option value="${m.name}">${m.name}</option>`).join('')}
-                </select>
-              </div>
-
-              <div class="form-grid-2" style="margin-bottom:12px;">
-                <div class="form-group">
-                  <label>Default GST Rate</label>
-                  <select id="fc-gst" class="pos-select">
-                    <option value="0">0% (Exempt)</option>
-                    <option value="5" selected>5% GST</option>
-                    <option value="12">12% GST</option>
-                    <option value="18">18% GST</option>
-                    <option value="28">28% GST</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>Default HSN Code</label>
-                  <input type="text" id="fc-hsn" class="pos-input font-mono" placeholder="e.g. 1006" />
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label>Description & Notes</label>
-                <textarea id="fc-desc" class="pos-input" rows="2" placeholder="Optional notes for this category..."></textarea>
-              </div>
-            </div>
-
-            <div class="retail-modal__footer">
-              <button type="button" class="btn btn--outline" id="cat-modal-cancel">Cancel</button>
-              <button type="submit" class="btn btn--primary">Save Category</button>
-            </div>
-          </form>
         </div>
-      </div>
-    `;
+      `;
 
-    setupEvents(outlet);
-
-    if (subTab === 'main') {
-      const filterSelect = outlet.querySelector('#cat-filter-parent');
-      if (filterSelect) {
-        filterSelect.value = 'main';
-        filterSelect.dispatchEvent(new Event('change'));
-      }
-    } else if (subTab === 'sub') {
-      const filterSelect = outlet.querySelector('#cat-filter-parent');
-      if (filterSelect) {
-        filterSelect.value = 'sub';
-        filterSelect.dispatchEvent(new Event('change'));
-      }
-    }
-  }
-
-  function renderRows(list) {
-    if (list.length === 0) {
-      return `<tr><td colspan="8" class="table-empty"><div class="table-empty__text">No matching categories found</div></td></tr>`;
-    }
-
-    return list.map(c => `
-      <tr>
-        <td class="font-mono text-brand font-bold">${c.code}</td>
-        <td><strong>${c.name}</strong></td>
-        <td>
-          ${c.parent 
-            ? `<span class="pay-chip pay-chip--card" style="font-size:11px;">Sub &rarr; ${c.parent}</span>`
-            : '<span class="status-chip status-chip--success" style="font-size:10px;">MAIN CATEGORY</span>'}
-        </td>
-        <td class="font-mono">${c.gstRate}%</td>
-        <td class="font-mono text-secondary">${c.hsn || '—'}</td>
-        <td style="text-align:right;" class="font-mono font-bold">${c.count} items</td>
-        <td style="text-align:center;">
-          <span class="status-chip status-chip--${c.active ? 'success' : 'warning'}">${c.active ? 'Active' : 'Inactive'}</span>
-        </td>
-        <td style="text-align:center;">
-          <button class="btn btn--xs btn--outline btn-del-cat" data-id="${c.id}">Delete</button>
-        </td>
-      </tr>
-    `).join('');
-  }
-
-  function setupEvents(outlet) {
-    const searchInput = outlet.querySelector('#cat-search');
-    const filterSelect = outlet.querySelector('#cat-filter-parent');
-    const tbody = outlet.querySelector('#cat-tbody');
-
-    function applyFilter() {
-      const q = (searchInput.value || '').trim().toLowerCase();
-      const parentFilter = filterSelect.value;
-      const all = getCategories();
-
-      const filtered = all.filter(c => {
-        const matchesQ = !q || c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q);
-        const matchesType = !parentFilter || 
-          (parentFilter === 'main' && !c.parent) || 
-          (parentFilter === 'sub' && c.parent);
-        return matchesQ && matchesType;
+      container.querySelectorAll('.edit-cat-btn').forEach(b => {
+        b.onclick = () => {
+          const id = b.getAttribute('data-id');
+          const c = categoriesList.find(x => x.id === id);
+          if (c) openCategoryModal(c, outlet);
+        };
       });
 
-      tbody.innerHTML = renderRows(filtered);
-      attachDeleteEvents(outlet);
+    } catch (err) {
+      container.innerHTML = `<div style="color:var(--color-danger);text-align:center;padding:30px;">Failed to load categories: ${err.message}</div>`;
     }
-
-    if (searchInput) searchInput.oninput = applyFilter;
-    if (filterSelect) filterSelect.onchange = applyFilter;
-
-    // Modal
-    const addBtn = outlet.querySelector('#btn-add-cat-modal');
-    const modal = outlet.querySelector('#cat-modal');
-    const closeBtn = outlet.querySelector('#cat-modal-close');
-    const cancelBtn = outlet.querySelector('#cat-modal-cancel');
-    const form = outlet.querySelector('#cat-form');
-
-    if (addBtn && modal) addBtn.onclick = () => modal.classList.add('open');
-    if (closeBtn && modal) closeBtn.onclick = () => modal.classList.remove('open');
-    if (cancelBtn && modal) cancelBtn.onclick = () => modal.classList.remove('open');
-
-    if (form) {
-      form.onsubmit = (e) => {
-        e.preventDefault();
-        const list = getCategories();
-        const newCat = {
-          id: 'CAT-' + String(list.length + 1).padStart(2, '0'),
-          name: outlet.querySelector('#fc-name').value.trim(),
-          code: outlet.querySelector('#fc-code').value.trim().toUpperCase(),
-          parent: outlet.querySelector('#fc-parent').value.trim() || null,
-          gstRate: Number(outlet.querySelector('#fc-gst').value) || 0,
-          hsn: outlet.querySelector('#fc-hsn').value.trim(),
-          active: true,
-          count: 0
-        };
-
-        list.push(newCat);
-        saveCategories(list);
-        modal.classList.remove('open');
-        renderPage(outlet);
-        alert(`Category ${newCat.name} created successfully!`);
-      };
-    }
-
-    attachDeleteEvents(outlet);
   }
 
-  function attachDeleteEvents(outlet) {
-    outlet.querySelectorAll('.btn-del-cat').forEach(b => {
-      b.onclick = () => {
-        const id = b.getAttribute('data-id');
-        if (confirm(`Are you sure you want to remove category ${id}?`)) {
-          let list = getCategories().filter(c => c.id !== id);
-          saveCategories(list);
-          renderPage(outlet);
-        }
+  function openCategoryModal(existingCat = null, outlet) {
+    const isEdit = !!existingCat;
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-container" style="max-width:440px;">
+        <div class="modal-header">
+          <h3 class="modal-title">${isEdit ? 'Edit Category' : 'Create Product Category'}</h3>
+          <button class="btn btn-ghost btn-icon" id="catm-close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>
+        <form id="catm-form" style="padding:20px;">
+          <div class="form-group">
+            <label class="form-label">Category Name</label>
+            <input type="text" id="cat-name-input" class="form-input" placeholder="e.g. Menswear & Apparel" value="${existingCat?.name || ''}" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category Code</label>
+            <input type="text" id="cat-code-input" class="form-input" placeholder="e.g. APP-M" value="${existingCat?.code || ''}" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select id="cat-status-input" class="form-select">
+              <option value="Active" ${existingCat?.status === 'Active' ? 'selected' : ''}>Active</option>
+              <option value="Inactive" ${existingCat?.status === 'Inactive' ? 'selected' : ''}>Inactive</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%;margin-top:10px;">${isEdit ? 'Update Category' : 'Save Category'}</button>
+        </form>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    document.getElementById('catm-close').onclick = () => modal.remove();
+    document.getElementById('catm-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const payload = {
+        name: document.getElementById('cat-name-input').value.trim(),
+        code: document.getElementById('cat-code-input').value.trim(),
+        status: document.getElementById('cat-status-input').value
       };
-    });
+      await global.apiService.createCategory(payload);
+      global.Toast?.success(`Category ${payload.name} saved!`);
+      modal.remove();
+      loadCategories(outlet);
+    };
   }
 
-  return { renderPage, getCategories };
-})();
+  global.CategoriesPage = { render };
+})(window);

@@ -1,197 +1,152 @@
 /**
- * RetailNext — Global Search Bar & Modal
- * Searches across Products, Customers, Suppliers, Invoices, Purchases, and Transactions.
+ * Retail Next — Universal Global Search & Fast Navigation (Ctrl+F)
  */
 
 'use strict';
 
-window.GlobalSearch = (() => {
-  let searchInput = null;
-  let resultsContainer = null;
-  let selectedIndex = -1;
-  let currentResults = [];
+(function(global) {
+  let modalEl = null;
 
-  function init(containerEl, onSelectResult) {
-    if (!containerEl) return;
-    containerEl.innerHTML = '';
+  const ALL_PAGES = [
+    { title: 'Dashboard', route: '/dashboard', category: 'General', desc: 'Executive control center & real-time store KPIs' },
+    { title: 'POS Billing', route: '/pos', category: 'Billing', desc: 'Ultra-fast cash register & barcode checkout' },
+    { title: 'Stores Directory', route: '/stores', category: 'Stores', desc: 'Multi-store retail branches & license tracking' },
+    
+    // Sales Manager
+    { title: 'Sales (Invoices History)', route: '/sales', category: 'Sales Manager', desc: 'Completed, held, and refunded invoices ledger' },
+    { title: 'Employee Sales Leaderboard', route: '/sales/employee-sales', category: 'Sales Manager', desc: 'Staff revenue attribution & sales performance' },
+    { title: 'Counter Sales Reconciliation', route: '/sales/counter-sales', category: 'Sales Manager', desc: 'Cashier register drawer closing & tenders' },
+    
+    // Product Manager
+    { title: 'Categories Directory', route: '/categories', category: 'Product Manager', desc: 'Product category hierarchy and master list' },
+    { title: 'Variations & Attributes', route: '/variations', category: 'Product Manager', desc: 'Sizes, colors, materials, and attribute matrices' },
+    { title: 'Products Catalog', route: '/products', category: 'Product Manager', desc: 'Master product inventory with SKU, HSN, and prices' },
+    { title: 'Barcode & QR Generator', route: '/barcode', category: 'Product Manager', desc: 'Dynamic barcode label roll generator for printers' },
+    
+    // Return & Exchange Manager
+    { title: 'Customer Returns', route: '/returns', category: 'Return & Exchange', desc: 'Process customer product returns & credit notes' },
+    { title: 'Product Exchanges', route: '/returns/exchanges', category: 'Return & Exchange', desc: 'Side-by-side replacement & difference calculation' },
+    
+    // Stock Manager
+    { title: 'Warehouse Stocks', route: '/stock/warehouse', category: 'Stock Manager', desc: 'Central warehouse balances, racks, and serials' },
+    { title: 'Store Branch Stocks', route: '/stock', category: 'Stock Manager', desc: 'Current store levels & inventory valuation' },
+    { title: 'Stock Transfers', route: '/stock/transfers', category: 'Stock Manager', desc: 'Store-to-store & warehouse movement challans' },
+    
+    // Customer Manager
+    { title: 'Customer Directory', route: '/customers', category: 'Customer Manager', desc: 'Customer profiles, contact info, and loyalty points' },
+    { title: 'Individual Customer 360', route: '/customers/individual', category: 'Customer Manager', desc: 'Unified customer audit, bills, and returns ledger' },
+    
+    // Discount Manager
+    { title: 'Order Promo Coupons', route: '/discounts/order-coupons', category: 'Discount Manager', desc: 'Cart-wide promo codes & flat/percentage discounts' },
+    { title: 'Product Coupons', route: '/discounts/product-coupons', category: 'Discount Manager', desc: 'SKU and category-specific promotional rules' },
+    { title: 'Customer VIP Coupons', route: '/discounts/customer-coupons', category: 'Discount Manager', desc: 'Personalized VIP customer tier discount codes' },
+    
+    // Vendors Manager
+    { title: 'Vendors Directory', route: '/vendors', category: 'Vendors Manager', desc: 'Suppliers directory, GSTIN, and payables ledger' },
+    { title: 'Purchase Orders', route: '/vendors/orders', category: 'Vendors Manager', desc: 'Create and track procurement purchase orders' },
+    { title: 'Vendor Invoices (Bills)', route: '/vendors/invoices', category: 'Vendors Manager', desc: 'Record supplier billing invoices & payments' },
+    { title: 'Vendor Dues & Settlements', route: '/vendors/due', category: 'Vendors Manager', desc: 'Outstanding supplier balances & settlement' },
+    
+    // Staff Manager
+    { title: 'Staff Accounts & MPIN', route: '/staff', category: 'Staff Manager', desc: 'Cashier logins, 4-digit MPIN, and module permissions' },
+    
+    // Employee HR Manager
+    { title: 'Employee Directory', route: '/employees', category: 'Employee HR Manager', desc: 'Staff profiles, designations, and salary records' },
+    { title: 'Attendance & Muster Roll', route: '/employees/attendance', category: 'Employee HR Manager', desc: 'Daily attendance marking, leave tracking, and QR muster' },
+    { title: 'Payroll & Salary Register', route: '/employees/payroll', category: 'Employee HR Manager', desc: 'Monthly salary calculation, deductions, and payslips' },
+    { title: 'ID Card Badges', route: '/employees/id-cards', category: 'Employee HR Manager', desc: 'Printable PVC badges with employee attendance QR' },
+    { title: 'Staff Leaves Management', route: '/employees/leaves', category: 'Employee HR Manager', desc: 'Leave requests, quota tracking, and approvals' },
+    { title: 'Advances & Repayment', route: '/employees/advances', category: 'Employee HR Manager', desc: 'Salary loan advances and installment repayments' }
+  ];
 
-    const wrap = document.createElement('div');
-    wrap.className = 'global-search';
+  function openSearch() {
+    if (document.getElementById('rn-global-search-modal')) return;
 
-    wrap.innerHTML = `
-      <div class="global-search__box">
-        <svg class="global-search__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        <input 
-          type="text" 
-          id="global-search-input" 
-          class="global-search__input" 
-          placeholder="Global Search (Products, Customers, Invoices...) [Ctrl+F]" 
-          autocomplete="off" 
-          spellcheck="false" 
-        />
-        <span class="global-search__kbd">Ctrl+F</span>
-        <button id="global-search-clear" class="global-search__clear" title="Clear search" style="display:none;">&times;</button>
+    modalEl = document.createElement('div');
+    modalEl.id = 'rn-global-search-modal';
+    modalEl.className = 'modal-overlay';
+
+    modalEl.innerHTML = `
+      <div class="modal-container" style="max-width:620px;max-height:80vh;">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--border-slate-200);display:flex;align-items:center;gap:12px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary-purple)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="global-search-input" placeholder="Search pages, commands, or press Esc to close..." style="flex:1;border:none;outline:none;font-size:15px;color:var(--slate-900);background:transparent;" autofocus />
+          <span class="kbd-shortcut">ESC</span>
+        </div>
+        <div class="modal-body" id="global-search-results" style="padding:10px 14px;max-height:480px;overflow-y:auto;">
+          <!-- Injected items -->
+        </div>
       </div>
-      <div id="global-search-dropdown" class="global-search__dropdown" style="display:none;"></div>
     `;
 
-    containerEl.appendChild(wrap);
+    document.body.appendChild(modalEl);
 
-    searchInput = wrap.querySelector('#global-search-input');
-    resultsContainer = wrap.querySelector('#global-search-dropdown');
-    const clearBtn = wrap.querySelector('#global-search-clear');
+    const input = document.getElementById('global-search-input');
+    const resultsContainer = document.getElementById('global-search-results');
 
-    searchInput.addEventListener('input', () => {
-      const q = searchInput.value;
-      if (q.trim()) {
-        clearBtn.style.display = 'block';
-        performSearch(q, onSelectResult);
-      } else {
-        clearBtn.style.display = 'none';
-        closeDropdown();
+    function renderList(query = '') {
+      const q = query.toLowerCase().trim();
+      const filtered = q
+        ? ALL_PAGES.filter(p => p.title.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || p.route.toLowerCase().includes(q))
+        : ALL_PAGES;
+
+      if (!filtered.length) {
+        resultsContainer.innerHTML = '<div style="text-align:center;padding:30px;color:var(--slate-400);">No matching pages or features found.</div>';
+        return;
       }
-    });
 
-    clearBtn.addEventListener('click', () => {
-      searchInput.value = '';
-      clearBtn.style.display = 'none';
-      closeDropdown();
-      searchInput.focus();
-    });
-
-    // Keyboard navigation in dropdown
-    searchInput.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        if (currentResults.length > 0) {
-          selectedIndex = (selectedIndex + 1) % currentResults.length;
-          updateHighlight();
-        }
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        if (currentResults.length > 0) {
-          selectedIndex = (selectedIndex - 1 + currentResults.length) % currentResults.length;
-          updateHighlight();
-        }
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        if (selectedIndex >= 0 && selectedIndex < currentResults.length) {
-          selectItem(currentResults[selectedIndex], onSelectResult);
-        } else if (currentResults.length > 0) {
-          selectItem(currentResults[0], onSelectResult);
-        }
-      } else if (e.key === 'Escape') {
-        closeDropdown();
-      }
-    });
-
-    // Close when clicking outside
-    document.addEventListener('click', (e) => {
-      if (!wrap.contains(e.target)) {
-        closeDropdown();
-      }
-    });
-  }
-
-  function performSearch(query, onSelectResult) {
-    if (!window.RetailStore) return;
-    const results = window.RetailStore.globalSearch(query);
-    currentResults = results;
-    selectedIndex = -1;
-
-    if (results.length === 0) {
-      resultsContainer.innerHTML = `
-        <div class="search-empty">
-          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          <div>No matching products, customers, suppliers or transactions found.</div>
-          <div style="font-size:11px;color:var(--color-text-tertiary);margin-top:4px;">Try searching by Name, Barcode, SKU, Mobile No, or Invoice #</div>
+      resultsContainer.innerHTML = filtered.map(item => `
+        <div class="search-result-item" data-route="${item.route}" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:var(--radius-lg);cursor:pointer;transition:all 0.15s ease;margin-bottom:4px;">
+          <div>
+            <div style="font-weight:600;font-size:13.5px;color:var(--slate-900);display:flex;align-items:center;gap:8px;">
+              ${item.title}
+              <span class="badge badge-slate" style="font-size:10px;">${item.category}</span>
+            </div>
+            <div style="font-size:11.5px;color:var(--slate-500);margin-top:2px;">${item.desc}</div>
+          </div>
+          <div style="font-size:11px;font-family:var(--font-mono);color:var(--primary-purple);font-weight:600;">
+            ${item.route}
+          </div>
         </div>
-      `;
-      resultsContainer.style.display = 'block';
-      return;
-    }
+      `).join('');
 
-    resultsContainer.innerHTML = '';
-    const header = document.createElement('div');
-    header.className = 'search-dropdown-header';
-    header.innerHTML = `<span>Results (${results.length})</span><span>Use ↑↓ arrows to navigate, Enter to open</span>`;
-    resultsContainer.appendChild(header);
-
-    results.forEach((item, idx) => {
-      const row = document.createElement('div');
-      row.className = 'search-result-item';
-      row.setAttribute('data-idx', idx);
-
-      row.innerHTML = `
-        <div class="search-item__tag" style="background:${item.color}22; color:${item.color}; border:1px solid ${item.color}44;">
-          ${item.type}
-        </div>
-        <div class="search-item__content">
-          <div class="search-item__title">${escapeHtml(item.title)}</div>
-          <div class="search-item__subtitle">${escapeHtml(item.subtitle)}</div>
-        </div>
-        ${item.badge ? `<div class="search-item__badge">${escapeHtml(item.badge)}</div>` : ''}
-      `;
-
-      row.addEventListener('click', () => {
-        selectItem(item, onSelectResult);
+      resultsContainer.querySelectorAll('.search-result-item').forEach(el => {
+        el.onmouseenter = () => el.style.backgroundColor = 'var(--slate-100)';
+        el.onmouseleave = () => el.style.backgroundColor = 'transparent';
+        el.onclick = () => {
+          const route = el.getAttribute('data-route');
+          modalEl.remove();
+          global.RetailNextRouter?.navigate(route);
+        };
       });
+    }
 
-      row.addEventListener('mouseenter', () => {
-        selectedIndex = idx;
-        updateHighlight();
-      });
+    renderList();
 
-      resultsContainer.appendChild(row);
-    });
+    input.oninput = (e) => renderList(e.target.value);
+    input.focus();
 
-    resultsContainer.style.display = 'block';
-  }
+    // Close on escape or outside click
+    modalEl.onclick = (e) => {
+      if (e.target === modalEl) modalEl.remove();
+    };
 
-  function updateHighlight() {
-    const items = resultsContainer.querySelectorAll('.search-result-item');
-    items.forEach((el, idx) => {
-      el.classList.toggle('active', idx === selectedIndex);
-      if (idx === selectedIndex) {
-        el.scrollIntoView({ block: 'nearest' });
+    const handleKeydown = (e) => {
+      if (e.key === 'Escape') {
+        modalEl.remove();
+        document.removeEventListener('keydown', handleKeydown);
       }
-    });
+    };
+    document.addEventListener('keydown', handleKeydown);
   }
 
-  function selectItem(item, onSelectResult) {
-    closeDropdown();
-    if (onSelectResult) {
-      onSelectResult(item);
+  // Register Ctrl+F shortcut
+  window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+      e.preventDefault();
+      openSearch();
     }
-  }
+  });
 
-  function closeDropdown() {
-    if (resultsContainer) {
-      resultsContainer.style.display = 'none';
-      selectedIndex = -1;
-    }
-  }
-
-  function focus() {
-    if (searchInput) {
-      searchInput.focus();
-      searchInput.select();
-    }
-  }
-
-  function escapeHtml(str) {
-    if (!str) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
-  return { init, focus, closeDropdown };
-})();
-
+  global.GlobalSearch = { open: openSearch, pages: ALL_PAGES };
+})(window);

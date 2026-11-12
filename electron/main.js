@@ -26,6 +26,7 @@ const { runMigrations } = require('./database/migrations/index');
 const { registerStatusHandlers } = require('./ipc/statusHandlers');
 const { registerConfigHandlers } = require('./ipc/configHandlers');
 const { registerSupabaseHandlers } = require('./ipc/supabaseHandlers');
+const { registerApiHandlers } = require('./ipc/apiHandlers');
 
 const CONTEXT = 'Main';
 
@@ -179,6 +180,41 @@ function createMainWindow() {
   // Load the renderer HTML entry point.
   mainWindow.loadFile(path.join(__dirname, '..', 'src', 'index.html'));
 
+  // Configure hardware device access for WebUSB, WebSerial, and WebBluetooth thermal printers
+  const ses = mainWindow.webContents.session;
+  ses.setPermissionCheckHandler((_webContents, permission) => {
+    if (['usb', 'serial', 'bluetooth'].includes(permission)) return true;
+    return true;
+  });
+  ses.setDevicePermissionHandler(() => true);
+
+  ses.on('select-usb-device', (event, details, callback) => {
+    event.preventDefault();
+    if (details.deviceList && details.deviceList.length > 0) {
+      callback(details.deviceList[0].deviceId);
+    } else {
+      callback('');
+    }
+  });
+
+  ses.on('select-serial-port', (event, portList, _webContents, callback) => {
+    event.preventDefault();
+    if (portList && portList.length > 0) {
+      callback(portList[0].portId);
+    } else {
+      callback('');
+    }
+  });
+
+  mainWindow.webContents.on('select-bluetooth-device', (event, deviceList, callback) => {
+    event.preventDefault();
+    if (deviceList && deviceList.length > 0) {
+      callback(deviceList[0].deviceId);
+    } else {
+      callback('');
+    }
+  });
+
   // Show the window only once the renderer has fully painted.
   // This prevents the ugly "white flash" on startup.
   mainWindow.once('ready-to-show', () => {
@@ -211,7 +247,8 @@ async function initialiseDatabase() {
 
 // ─── App Lifecycle ────────────────────────────────────────────────────────────
 
-app.whenReady().then(async () => {
+if (gotLock) {
+  app.whenReady().then(async () => {
   logger.info(CONTEXT, `Retail Next starting. Electron ${process.versions.electron}, Node ${process.versions.node}`);
   logger.info(CONTEXT, `User data path: ${app.getPath('userData')}`);
 
@@ -220,20 +257,15 @@ app.whenReady().then(async () => {
   registerStatusHandlers();
   registerConfigHandlers();
   registerSupabaseHandlers();
+  registerApiHandlers();
   setupNativeMenu();
   logger.info(CONTEXT, 'IPC handlers and native menus registered.');
 
-  // Step 2: Initialise the database.
+  // Step 2: Initialise the database if available.
   try {
     await initialiseDatabase();
   } catch (err) {
-    // Show a native error dialog and quit if the DB cannot be opened.
-    dialog.showErrorBox(
-      'Database Error',
-      `Retail Next could not initialise the local database.\n\n${err.message}\n\nThe application will now close.`
-    );
-    app.quit();
-    return;
+    logger.warn(CONTEXT, `Local database init warning: ${err.message}. Operating in API-first mode.`);
   }
 
   // Step 3: Create the application window.
@@ -246,6 +278,7 @@ app.whenReady().then(async () => {
     }
   });
 });
+}
 
 // ─── Graceful Shutdown ────────────────────────────────────────────────────────
 

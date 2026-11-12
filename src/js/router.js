@@ -1,160 +1,164 @@
 /**
- * Client-Side Router — Updated for accordion sidebar + context-aware coming soon pages.
+ * Retail Next — Central Client-Side Router
  *
- * Routes are registered by app.js for real pages (dashboard).
- * All sub-page routes from MENU_CONFIG automatically display a rich
- * coming-soon placeholder that shows module + page context.
+ * Routes supported:
+ *   /dashboard
+ *   /pos
+ *   /stores
+ *   /sales
+ *   /sales/employee-sales
+ *   /sales/counter-sales
+ *   /categories
+ *   /variations
+ *   /products
+ *   /barcode
+ *   /returns
+ *   /returns/exchanges
+ *   /stock/warehouse
+ *   /stock
+ *   /stock/transfers
+ *   /customers
+ *   /customers/individual
+ *   /discounts/order-coupons
+ *   /discounts/product-coupons
+ *   /discounts/customer-coupons
+ *   /vendors
+ *   /vendors/orders
+ *   /vendors/invoices
+ *   /vendors/due
+ *   /staff
+ *   /employees
+ *   /employees/attendance
+ *   /employees/payroll
+ *   /employees/id-cards
+ *   /employees/leaves
+ *   /employees/advances
  */
 
-/* global SidebarManager */
+'use strict';
 
-const Router = (() => {
+(function(global) {
 
-  /** @type {Map<string, function>} */
-  const routes = new Map();
+  class Router {
+    constructor(outletEl, sidebarInstance) {
+      this.outlet = outletEl;
+      this.sidebar = sidebarInstance;
+      this.currentRoute = '/dashboard';
 
-  /** @type {string|null} */
-  let currentRoute = null;
+      this.routes = {
+        '/login': global.LoginPage,
+        '/dashboard': global.DashboardPage,
+        '/pos': global.PosBillingPage,
+        '/stores': global.StoresPage,
+        '/sales': global.SalesInvoicesPage,
+        '/sales/employee-sales': global.EmployeeSalesPage,
+        '/sales/counter-sales': global.CounterSalesPage,
+        '/categories': global.CategoriesPage,
+        '/variations': global.VariationsPage,
+        '/products': global.ProductsCatalogPage,
+        '/barcode': global.BarcodeGeneratorPage,
+        '/returns': global.ReturnsPage,
+        '/returns/exchanges': global.ExchangesPage,
+        '/stock/warehouse': global.WarehouseStockPage,
+        '/stock': global.StoreStockPage,
+        '/stock/transfers': global.StockTransfersPage,
+        '/customers': global.CustomersDirectoryPage,
+        '/customers/individual': global.Customer360Page,
+        '/discounts/order-coupons': global.OrderCouponsPage,
+        '/discounts/product-coupons': global.ProductCouponsPage,
+        '/discounts/customer-coupons': global.CustomerCouponsPage,
+        '/vendors': global.VendorsDirectoryPage,
+        '/vendors/orders': global.PurchaseOrdersPage,
+        '/vendors/invoices': global.VendorInvoicesPage,
+        '/vendors/due': global.VendorDuesPage,
+        '/staff': global.StaffManagerPage,
+        '/employees': global.EmployeeDirectoryPage,
+        '/employees/attendance': global.AttendancePage,
+        '/employees/payroll': global.PayrollPage,
+        '/employees/id-cards': global.IdCardsPage,
+        '/employees/leaves': global.LeavesPage,
+        '/employees/advances': global.AdvancesPage
+      };
 
-  /** @type {HTMLElement|null} */
-  let outlet = null;
-
-  /**
-   * Initialises the router.
-   * @param {HTMLElement} outletEl
-   */
-  function init(outletEl) {
-    outlet = outletEl;
-  }
-
-  /**
-   * Registers a page route with a render function.
-   * @param {string} name
-   * @param {function} renderFn - Called with (outlet, data)
-   */
-  function register(name, renderFn) {
-    routes.set(name, renderFn);
-  }
-
-  /**
-   * Navigates to a route with optional context data.
-   * @param {string} routeName
-   * @param {object} [data]
-   */
-  function navigate(routeName, data) {
-    if (!outlet) {
-      console.error('[Router] Outlet not initialised.');
-      return;
+      // Listen to window hashchange
+      window.addEventListener('hashchange', () => this.handleHashChange());
     }
 
-    currentRoute = routeName;
-
-    // Registered page (e.g. dashboard)
-    const renderFn = routes.get(routeName);
-    if (renderFn) {
-      outlet.innerHTML = '';
-      outlet.className = '';
-      renderFn(outlet, data);
-      return;
+    init() {
+      this.handleHashChange();
     }
 
-    // Coming soon — render context-aware placeholder
-    renderComingSoon(routeName, data);
+    handleHashChange() {
+      let hash = window.location.hash.replace(/^#/, '');
+      if (!hash || hash === '/') {
+        const isAuth = global.apiService ? global.apiService.isAuthenticated() : false;
+        hash = isAuth ? '/dashboard' : '/login';
+      }
+
+      // Normalize
+      const cleanPath = hash.split('?')[0];
+      this.navigate(cleanPath, false);
+    }
+
+    navigate(routePath, updateHash = true) {
+      const path = routePath.startsWith('/') ? routePath : `/${routePath}`;
+      const isAuth = global.apiService ? global.apiService.isAuthenticated() : false;
+      const sidebarEl = document.getElementById('app-sidebar');
+      const headerEl = document.getElementById('app-header');
+      const statusbarEl = document.getElementById('app-statusbar');
+
+      if (path === '/login') {
+        if (sidebarEl) sidebarEl.style.display = 'none';
+        if (headerEl) headerEl.style.display = 'none';
+        if (statusbarEl) statusbarEl.style.display = 'none';
+      } else {
+        if (!isAuth) {
+          // If not logged in, enforce redirect to /login
+          this.currentRoute = '/login';
+          window.location.hash = '#/login';
+          if (sidebarEl) sidebarEl.style.display = 'none';
+          if (headerEl) headerEl.style.display = 'none';
+          if (statusbarEl) statusbarEl.style.display = 'none';
+          if (this.outlet && global.LoginPage) {
+            global.LoginPage.render(this.outlet);
+          }
+          document.title = 'Retail Next — Sign In';
+          return;
+        }
+
+        if (sidebarEl) sidebarEl.style.display = 'flex';
+        if (headerEl) headerEl.style.display = 'flex';
+        if (statusbarEl) statusbarEl.style.display = 'flex';
+      }
+
+      const pageHandler = this.routes[path] || (isAuth ? this.routes['/dashboard'] : this.routes['/login']);
+
+      this.currentRoute = path;
+      if (updateHash) {
+        window.location.hash = `#${path}`;
+      }
+
+      if (this.sidebar && typeof this.sidebar.setActiveRoute === 'function') {
+        this.sidebar.setActiveRoute(path);
+      }
+
+      if (this.outlet) {
+        this.outlet.scrollTop = 0;
+        if (pageHandler && typeof pageHandler.render === 'function') {
+          pageHandler.render(this.outlet);
+        } else {
+          this.outlet.innerHTML = `<div class="card" style="padding:40px;text-align:center;"><h2>Page Not Found</h2><p style="color:var(--slate-500);margin-top:6px;">Route ${path} could not be resolved.</p></div>`;
+        }
+      }
+
+      // Update document title
+      document.title = `Retail Next — ${path.slice(1).replace(/-/g, ' ').toUpperCase()}`;
+    }
+
+    refreshCurrentPage() {
+      this.navigate(this.currentRoute, false);
+    }
   }
 
-  /**
-   * Renders a premium coming-soon placeholder page.
-   * Uses route context (module name, color, icon) from MENU_CONFIG / data.
-   *
-   * @param {string} routeName
-   * @param {object} [data]
-   */
-  function renderComingSoon(routeName, data) {
-    outlet.innerHTML = '';
-    outlet.className = '';
-
-    const moduleColor = (data && data.moduleColor) || '#3b82f6';
-    const moduleLabel = (data && data.moduleLabel) || 'Module';
-    const pageLabel   = (data && data.pageLabel)   || routeName;
-    const moduleIcon  = (data && data.moduleIcon)  || '';
-
-    // Build a subtle hex-like alpha color for backgrounds
-    const colorAlpha10 = moduleColor + '1a';   // ~10% opacity
-    const colorAlpha20 = moduleColor + '33';   // ~20% opacity
-
-    outlet.innerHTML = `
-      <div class="coming-soon-page">
-        <!-- Breadcrumb path -->
-        <div class="cs-breadcrumb">
-          <span class="cs-breadcrumb__module" style="color:${moduleColor}">${moduleLabel}</span>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#64748b"><polyline points="9 18 15 12 9 6"/></svg>
-          <span class="cs-breadcrumb__page">${pageLabel}</span>
-        </div>
-
-        <!-- Main card -->
-        <div class="cs-card">
-
-          <!-- Glowing icon -->
-          <div class="cs-icon-ring" style="
-            background: ${colorAlpha10};
-            border: 1.5px solid ${colorAlpha20};
-            box-shadow: 0 0 40px ${colorAlpha10};
-          ">
-            <div class="cs-icon-inner" style="color:${moduleColor}">
-              ${moduleIcon}
-            </div>
-          </div>
-
-          <!-- Labels -->
-          <div class="cs-badge" style="background:${colorAlpha20}; color:${moduleColor}; border:1px solid ${colorAlpha20}">
-            Coming Soon
-          </div>
-
-          <h2 class="cs-title">${pageLabel}</h2>
-
-          <p class="cs-desc">
-            The <strong>${pageLabel}</strong> feature is currently under development
-            and will be available in a future phase of <strong>Retail Next</strong>.
-          </p>
-
-          <!-- Module context row -->
-          <div class="cs-module-row">
-            <div class="cs-module-dot" style="background:${moduleColor}"></div>
-            <span class="cs-module-label">${moduleLabel} Module</span>
-          </div>
-
-          <!-- Divider -->
-          <div class="cs-divider"></div>
-
-          <!-- Info grid -->
-          <div class="cs-info-grid">
-            <div class="cs-info-item">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              Offline-first architecture
-            </div>
-            <div class="cs-info-item">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-              SQLite local database
-            </div>
-            <div class="cs-info-item">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-              Secure IPC bridge
-            </div>
-            <div class="cs-info-item">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-              Cloud sync ready
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  /** @returns {string|null} */
-  function getCurrent() {
-    return currentRoute;
-  }
-
-  return { init, register, navigate, getCurrent };
-
-})();
+  global.Router = Router;
+})(window);

@@ -1,21 +1,21 @@
 {
   "name": "retail-next-desktop",
   "version": "1.0.0",
-  "description": "Retail Next — Professional Offline-First Retail POS Desktop Application",
+  "description": "Retail Next — API-First Retail ERP & POS Desktop Platform (https://retailnext.doonext.app)",
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
+    "web": "npx --yes serve src -l 3000",
     "rebuild": "electron-rebuild -f -w better-sqlite3"
   },
   "keywords": ["retail", "pos", "electron", "sqlite", "offline-first"],
   "author": "Retail Next",
   "license": "MIT",
   "devDependencies": {
-    "@electron/rebuild": "^3.6.0",
     "electron": "^28.3.3"
   },
-  "dependencies": {
+  "optionalDependencies": {
     "better-sqlite3": "^9.4.3"
   }
 }
